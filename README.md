@@ -12,7 +12,6 @@ Test the src `gulp test`
 
 Regenerate the docs `gulp docs`
 
-
 # Tutorial
 
 ----

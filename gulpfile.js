@@ -14,13 +14,26 @@ function getBundleName(){
     return name + "." + version;
 }
 
-gulp.task("default",function(){})
+
+gulp.task("watch",function(){
+    gulp.watch(["dist/js/*.js","dist/index.html","src/*.js"],["default"]);
+});
+
+gulp.task("default",["build"],function(){
+    var bundle_name = getBundleName();
+    return gulp.src("./build/"+bundle_name + ".js")
+    .pipe(gulp.dest('./dist/js'));
+});
+
 gulp.task("build",function(cb){
     var bundle_name = getBundleName();
-    gulp.src([
-        "src/a.js",
-        "src/b.js",
-        "src/c.js",
+    return gulp.src([
+        "src/module_banner.js",
+        "src/svgElem.js",
+        "src/attr.js",
+        "src/svg.js",
+        "src/circle.js",
+        "src/module_footer.js",        
     ])
     .pipe(concat(bundle_name + ".js"))
     .pipe(gulp.dest('./build'))
@@ -28,7 +41,7 @@ gulp.task("build",function(cb){
     // create  a minified build
     .pipe(rename(bundle_name + ".min.js"))
     .pipe(uglify())
-    .pipe(gulp.dest('./build'))        
+    .pipe(gulp.dest('./build'));
 });
 
 gulp.task("clean_build",function(){
@@ -40,7 +53,6 @@ gulp.task("clean_build",function(){
 gulp.task("test",function(){    
     // run all the test
     // get the performance data out
-
 });
 
 gulp.task("docs",function(callback){    
