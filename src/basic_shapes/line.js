@@ -1,9 +1,9 @@
 // line.js
 svg.extend(function(svgElem,util){
-    svgElem.prototype.line = line;
+    svgElem.prototype.line = line;    
+    svgElem.prototype.polyline = polyline;
     line.asLine = asLine
-    // svgElem.prototype.polyline = polyline;
-    // polyline.asPolyling = asPolyline;
+    polyline.asPolyline = asPolyline;
 
     function line(x1,y1,x2,y2){
         var e = new svgElem("line",this.dom);
@@ -60,57 +60,89 @@ svg.extend(function(svgElem,util){
     }
 
     function asPolyline(){
+        function inRange(index){
+            if(index < 0 ){return false;}
+            if( index >= this._points_array.length/2){return false;}
+            return true;
+        }
 
         this.points = function(p){            
             if( p === undefined){
                 return _points_array;
             }else{
                 var v = arrayOrString(p);
+                this._points_array = p.points;
                 this.attr("points",v.points_string);
-                return this
+                return this;
             }
         }
 
-        this.addPoint = function(index,x,y){
+        this.add = function(index,x,y){        
+            if(index < 0 ){return this;}
+            if(index > this._points_array.length){return this;}            
 
+            // add the point
+            Array.prototype.splice(index*2,0,x,y);
+
+            this.attr("points",p.join(" "));
+            return context;
         }
 
-        this.removePoint = function(index){
-            if( index < 0){return this;}
-            if( index >= this._points_array.length/2){return this;}
+        // remove the point with the given index.
+        this.remove = function(index){
+            if( inRange(index) === false){return this;}
 
+            // remove the x and y for that point.
             var p = this._points_array;
-            var start = index*2
+            Array.prototype.splice.call(p,index*2,2);
 
-            Array.prototype.slice.call(p,index*2,2);
             this.attr("points",p.join(" "));
             return context;
         }
 
         // retrieve a point at the given index
-        this.point = function(index){
-            if( index < 0){return null;}
-            if( index >= this._points_array.length/2){return null;}
+        // or set the point at the given index to the values provided
+        // @param index [number] - the index in which to retrieve the point
+        // @param x [number] - the x value to set for the point
+        // @param y [number] - the y value to set for the point
+        this.point = function(index,x,y){
+            if( inRange(index) === false){return this;}            
 
-            return {
-                x:this._points_array[index*2],
-                y:this._points_array[index*2 + 1]
-            };
+            if( x=== undefined){
+                return {
+                    x:this._points_array[index*2],
+                    y:this._points_array[index*2 + 1]
+                };
+            }else{
+                var p  = this._points_array;
+                p[index*2] = x;
+                p[index*2] = y;
+                this.attr("points",p.join(" "));
+                return this;
+            }
         }
+        
+        // @param x [number] - the amount of x to shift the points
+        // @param y [number] - the amount of x to shift the points
+        // @param begin [number] - optional. specify a begin in which to start shifting points.
+        //      default is at index 0
+        // @param end [number] - optional. specify the end in which to stop shifting points.
+        //      default is at the end of the array.
+        this.move = function(x,y,begin,end){
+            if( begin !== undefined && inRange(begin) === false){return this; }
+            if( end !== undefined && inRange(end) === false){return this; }
+            if( begin === undefined){begin = 0;}
+            if( end === undefined ){end = this._points_array.length/2;}
 
-        // TODO: do a move only over a range of the points
-        this.move = function(x,y){                        
-            var n = this._points_array.length;
             var p = this._points_array;
+            var n = end*2;            
             // shift all the points over
-            for(var i = 0; i < n; i += 2){
+            for(var i = begin*2 ; i < n; i += 2){
                 p[i] += x;
                 p[i+1] += y;
             }
-
-            p = arrayOrString(this._points_array);            
-            this._points_array = p.points;
-            this.attr("points",p.points_string);
+                        
+            this.attr("points",p.join(" "));
             return this;
         }
 
