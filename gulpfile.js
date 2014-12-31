@@ -22,17 +22,40 @@ gulp.task("watch",function(){
 gulp.task("default",["build"],function(){
     var bundle_name = getBundleName();
     return gulp.src("./build/"+bundle_name + ".js")
-    .pipe(gulp.dest('./dist/js'));
+            .pipe(gulp.dest('./dist/js'))
+            .pipe(rename(require("./package.json").name + ".js"))
+            .pipe(gulp.dest('./tests/manual/js'));
 });
 
 gulp.task("build",function(cb){
     var bundle_name = getBundleName();
     return gulp.src([
+        // header
         "src/module_banner.js",
+
+        // base class
         "src/svgElem.js",
-        "src/attr.js",
-        "src/svg.js",
-        "src/circle.js",
+        "src/util.js",
+
+        // sub-modules
+        "src/sub_modules/color.js",
+        "src/sub_modules/attr.js",
+        "src/sub_modules/shape.js",
+        "src/sub_modules/transform.js",
+        "src/sub_modules/style.js",
+        "src/sub_modules/lex.js",
+        
+        // containers
+        "src/containers/svg.js",
+        "src/containers/g.js",
+
+        // basic shapes        
+        "src/basic_shapes/rect.js",
+        "src/basic_shapes/circle.js",
+        "src/basic_shapes/ellipse.js",
+        "src/basic_shapes/line.js",
+        
+        // footer
         "src/module_footer.js",        
     ])
     .pipe(concat(bundle_name + ".js"))
@@ -41,7 +64,7 @@ gulp.task("build",function(cb){
     // create  a minified build
     .pipe(rename(bundle_name + ".min.js"))
     .pipe(uglify())
-    .pipe(gulp.dest('./build'));
+    .pipe(gulp.dest('./build'))
 });
 
 gulp.task("clean_build",function(){

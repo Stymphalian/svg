@@ -2,23 +2,10 @@
 <html>
 <head>
     <title>SVG Library</title>
-    <script type="text/javascript" data-main="js/main.js" src="js/require.js"></script>
+    <script type="text/javascript" data-main="dist/js/main.js" src="dist/js/require.js"></script>
     <style type="text/css" href="prettify.css"></style>
 </head>
 <body>
-    <pre style="background-color:lightgray">    
-        // create a new &lt;svg&gt; element under the DOM element specified by the 'div_id'
-        // with a widht of 400 and height of 300
-        var canvas = LIBRARY.svg("div_id",400,300);
-
-        // create a &lt;circle&gt; element at x=5,y=5,r=40 and add it as a child 
-        // of the canvas node.
-        var circle = LIBRARY.circle(canvas,5,5,40);
-        LIBRARY.attr(circle, {"color":red});
-
-        // circle is a DOM node, and therefore has access to 
-        // all the methods provided by the DOM interface
-        circle.addEventListener("click",function(){},false);
-    </pre>
+    <div id="canvas"></div>    
 </body>
 </html>

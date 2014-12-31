@@ -1,6 +1,7 @@
-svg.plugin(function(svgElem){
+svg.extend(function(svgElem,util){
     svgElem.prototype.svg = svg;
     svgElem.prototype.svgRoot = svgRoot;
+    svg.asSvg = asSvg;
 
     function svgRoot(parentElementId,width,height){
         var container = document.getElementById(parentElementId);       
@@ -11,16 +12,20 @@ svg.plugin(function(svgElem){
 
         if( width === undefined){width = container.clientWidth;}
         if( height === undefined){height = container.clientHeight;}
-        var canvas = svg(0,0,width,height);
+
+        // create the new svgElem
+        var e = new svgElem("svg",container);        
+        e.attr({'x' :0, 'y' :0 ,'width' : width, 'height' :height });
+        canvas = asSvg.call(e);
+        
         canvas.dom.setAttribute("xmlns",svgElem.prototype.svg_ns);
-        canvas.dom.setAttributeNS(svgElem.prototype.svg_ns,"xlink",svgElem.prototype.xlink_ns);
+        canvas.dom.setAttributeNS(svgElem.prototype.xml_ns,"xmlns:xlink",svgElem.prototype.xlink_ns);
         canvas.attr({
                     "version":"1.1",
                     "baseProfile":"full",        
                     });
         // TODO: Find out why I can't use the attr to set this attribute
-
-        container.appendChild(canvas.dom);
+        
         return canvas;
     }
 
@@ -49,7 +54,20 @@ svg.plugin(function(svgElem){
 
         // receive a rect specifying the viewport units for the element.
         this.viewBox = function(x,y,w,h){
-            this.attr('viewBox',[x,y,w,h].join(" "));
+            if( x === undefined){
+                var rs = this.attr("viewBox");
+                if( rs === null){return null;}
+                
+                rs = rs.split(" ");
+                return {
+                    x : parseFloat(rs[0]),
+                    y : parseFloat(rs[1]),
+                    w : parseFloat(rs[2]),
+                    h : parseFloat(rs[3])
+                }                
+            }else{
+                this.attr('viewBox',[x,y,w,h].join(" "));
+            }            
         }
 
         // align :
@@ -61,6 +79,13 @@ svg.plugin(function(svgElem){
             meetOrSlice (meetOrSlice === udnefined) ? "" : meetOrSlice;                
 
             this.attr('preserveAspectRatio',defer + " " + align + " " + meetOrSlice);
+            return this;
+        }
+
+
+        this.zoom = function(times){
+            console.warn("zoom not implemented");
+            return this;
         }
 
         return this;        

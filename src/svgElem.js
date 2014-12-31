@@ -3,7 +3,7 @@
 // everything is a svgElement
 // creating a new svgElement of a specific tag applies a mixin to provide special methods
 
-var svg = (function(){    
+var svg = (function(){
     // some global stuff
     var globals = {
         window : window,
@@ -19,12 +19,19 @@ var svg = (function(){
     // tag_name : the element in which we want to create
     // parent_node : the DOM node in whcih to append the newly created node under.
     function svgElem(tag_name,parent_node){        
-        this.dom = globals.document.createElementNS(svgElem.prototype.svg_ns,tag_name);
+
+        if(tag_name && Object.prototype.toString.call(tag_name) === "[object String]" ){
+            // TODO: should I add ids to every element that gets created??
+            this.dom = globals.document.createElementNS(svgElem.prototype.svg_ns,tag_name);
+        }else if( tag_name !== null){
+            // we have passed in a dom node to be used when creating the svgElem
+            this.dom = tag_name;
+        }
 
         if(parent_node){
             parent_node.appendChild(this.dom);
         }
-    }
+    }    
 
     // delete all children svg nodes under this element
     svgElem.prototype.clear = function(){
@@ -42,51 +49,99 @@ var svg = (function(){
         }        
     }
 
-    // to -- the object to mixin in to
-    // from -- the object to take properties from
-    // force -- boolean which determines if you should overwrite the values in 'to'
-    svgElem.prototype.mixin = function(to,from,force){
-        force = ( force === undefined) ? false : force
-        for( var k in from){
-            if( Object.prototype.hasOwnProperty.call(from,k)){
-                if( force || !Object.prototype.hasOwnProperty.call(to,k) ){
-                    to[k] = from[k];
+    //@return [svgElem] -  clone this element and then return the cloned element
+    // TODO: clonded children of the dom don't have an associated svgElem object
+    svgElem.prototype.clone = function(){
+        var parentNode = this.dom.parentNode;
+        var tag_name = this.dom.tagName.toLowerCase();
+        
+        // create a deep copy of the cloned nodes.
+        var clonedDom = this.dom.cloneNode(true);
+        if(parentNode){
+            parentNode.appendChild(clonedDom);
+        }
+
+        // create a new svgElem to use, using the created cloned dom tree
+        var e = new svgElem(clonedDom);        
+
+        // WARNING. 
+        // If we have a 'bound' function being cloned over this will cause
+        // alot of problems because the context may not match up.
+        for(var k in this){
+            if( Object.prototype.hasOwnProperty.call(this,k) ){
+                if( svgElem.prototype.plugin.has[k] !== undefined){
+                    continue;
                 }
+                e[k] = this[k];                
             }
         }
-        return to;
+
+        return e;
     }
 
-    svgElem.prototype.mixinUsingFunc = function(to,from,func){
-        for( var k in from){
-            if( Object.prototype.hasOwnProperty.call(from,k)){
-                to[k] = func(to,from,k);
-            }
-        }   
-        return to;
+    
+    // pass-in a function and recieve 
+    // func(svgElem){...}    
+    svgElem.prototype.extend = function(func){
+        // svgElem.prototype.util comes from the util.js file
+        // it gets added to the svgElem prototype
+        func(svgElem,svgElem.prototype.util);
     }
 
-    svgElem.prototype.mixinFromExports = function(to,from,namedExports,force){
-        if( namedExports && Object.prototype.toString.call(namedExports) == '[object Array]'){return;}
-        force = (force === undefined) ? false : force        
+    // pass in a function which meets the signature
+    // func(svgElem){}
+    // and returns an object with three properties
+    // {
+    //      name: the name in which the plugin will live under the svgelem namespace
+    //      constructor : function(context){...}
+    //          the context will be the svgElem
+    // }
+    // _plugin_list allows us to keep track of what properties
+    // in our svgElem is a plugin, therefore when we do our copy
+    // then we know what we are allowed to copy and can't copy.
+    
+    svgElem.prototype.plugin = function(func,overwrite){        
+        // return vlaue from the function will be added as a property under the svgElem
+        // access goes through that module and all 
+        var hasOwn = Object.prototype.hasOwnProperty;
+        var rs = func(svgElem,svgElem.prototype.util);
 
-        var i,k;
-        var n = namedExports.length;
-        for( i = 0; i < n ; ++i){
-            k = namedExports[i];
-            if( Object.prototype.hasOwnProperty.call(from,k)){
-                if( force || !Object.prototype.hasOwnProperty.call(to,k) ){
-                    to[k] = from[k];
-                }
-            }
-        }   
-        return to;
-    }
+        if( hasOwn.call(rs,"name") === false){return;}
+        if( hasOwn.call(rs,"constructor") === false){return;}
+        if(overwrite === undefined){overwrite = false;}
 
-        
-    svgElem.prototype.plugin = function(func){
-        func(svgElem);
+        // we can overwrite a plugin if we are forced to.
+        if(svgElem.prototype.plugin.has[rs.name] === true && overwrite === false){
+            return;
+        }
+
+        // define a property on the svgElem prototype
+        // the first time the user retrieves this plugin
+        // a new instance will be created and then set as a property
+        // of the calling object. In this way it is possible for
+        // the plugin methods to receive the svgElem context in which
+        // it is manipulating.
+        // we do this round about way in order to access the plugin using the 
+        // simpler syntax
+        //      elem.<plugin> instead of elem.<plugin>()        
+        svgElem.prototype.plugin.has[rs.name] = true;
+        Object.defineProperty(svgElem.prototype,rs.name,{            
+            get : function(){                                
+                var instance = new rs.constructor(this);
+                Object.defineProperty(this,rs.name,{
+                    value: instance,
+                    writable :true,
+                    configurable:true,
+                    enumerable:true
+                });                
+                return instance;
+            },
+            set :function (newValue){},
+            configurable : true,
+            enumerable: true
+        });
     }
+    svgElem.prototype.plugin.has = {};
 
     return new svgElem();
-}())
+}());
