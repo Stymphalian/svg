@@ -11,6 +11,11 @@
 function util(){}    
 lib.__proto__.util = util;
 
+
+util.regex = {
+    points : /[, ]/
+};
+
 // e.g
 // svgElem.is(obj,"string")
 // svgElem.is(obj,"object")

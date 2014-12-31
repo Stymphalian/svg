@@ -22,9 +22,7 @@ return function(canvas,T){
 
     l = canvas.line(20,0,280,0).attr(a);
     l.style.stroke("green");
-    l.move(0,150);
-
-    // now test poly lines
+    l.move(0,150);    
 }
 
 });

@@ -23,6 +23,8 @@ require(["svg","testing"], function(svg,T){
         "circle_test",
         "ellipse_test",
         "line_test",
+        "polyline_test",
+        "polygon_test",
                     
         "shape_test",
         // "transform_test"
