@@ -952,12 +952,58 @@ svg.extend(function(svgElem,util){
         var e = new svgElem("g",this.dom);
         return asG.call(e);        
     }
-
     
     function asG(){
         return this;
     }
     
+});
+svg.extend(function(svgElem,util){    
+    svgElem.prototype.defs = defs;
+    defs.asDefs = asDefs;
+
+    function defs(id){
+        var e = new svgElem("defs",this.dom);
+
+        if( id === undefined){
+            e._defs_id = "defs_"+ Date.now().toString() + "_";
+        }else{
+            e._defs_id = id;
+        }        
+        e._defs_start_id = 0;
+        e._defs_cache = {};
+
+        return asDefs.call(e);        
+    }
+
+    function asDefs(){        
+        this.store = function(id,svgElem,force){
+            if( force || this._defs_cache[id] === undefined){
+                this._defs_cache[id] = svgElem;
+            }
+        }
+
+        this.get = function(id){
+            return this._defs_cache[id];
+        }
+
+        this.drop = function(id){
+            delete this._defs_cache[id];
+        }
+
+        this.dropAll = function(){
+            this._defs_cache = {};
+        }
+
+        // get a next available url
+        this.url = function(){
+            this._defs_start_id += 1;
+            return this._defs_id + this._defs_start_id.toString();
+        }
+
+        return this;
+    }
+
 });
 //rect.js
 svg.extend(function(svgElem,util){
@@ -1550,6 +1596,48 @@ svg.extend(function(svgElem,util){
             context.clockwise = getSetBooleanValue(4);
         }
     }
+});
+svg.extend(function(svgElem,util){
+    svgElem.prototype.use = use;
+    use.asUse = asUse;
+
+    function use(href,x,y){
+        var e = new svgElem("use",this.dom);
+
+        if( href !== undefined){
+            if(href.charAt(0)!=="#"){
+                href = "#"+href;
+            }
+            e.attr("xlink:href",href,svgElem.prototype.xlink_ns);
+
+            // set the x,y pos if it was given
+            if( x !== undefined && y !== undefined){
+                e.attr({x:x,y:y});
+            }
+        }
+
+        return asUse.call(e);
+    }
+
+    function asUse(){
+        this.attr.DirectAccess(this,["+x","+y","+width","+height"]);
+
+        this.href = function(val){
+            if( val === undefined){
+                return this.attr("xlink:href");
+            }else{
+                if(val.charAt(0)!=="#"){
+                    val = "#"+val;
+                }
+
+                this.attr("xlink:href",val,svgElem.prototype.xlink_ns);
+                return this;
+            }
+        }
+
+        return this;
+    }
+
 });
     return svg;
 }));

@@ -48,6 +48,7 @@ gulp.task("build",function(cb){
         // containers
         "src/containers/svg.js",
         "src/containers/g.js",
+        "src/containers/defs.js",
 
         // basic shapes        
         "src/basic_shapes/rect.js",
@@ -56,6 +57,7 @@ gulp.task("build",function(cb){
         "src/basic_shapes/line.js",
         "src/basic_shapes/poly.js",
         "src/basic_shapes/path.js",
+        "src/basic_shapes/use.js",
         
         // footer
         "src/module_footer.js",        

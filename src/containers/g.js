@@ -7,7 +7,6 @@ svg.extend(function(svgElem,util){
         var e = new svgElem("g",this.dom);
         return asG.call(e);        
     }
-
     
     function asG(){
         return this;

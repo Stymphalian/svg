@@ -57,7 +57,7 @@ define(function(){
             "fill" : "green",
             "fill-opacity" : 0.4,
             "stroke" : "black",
-            "storke-width" : 3
+            "stroke-width" : 3
         };
     }
 
