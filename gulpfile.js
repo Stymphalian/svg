@@ -60,6 +60,7 @@ gulp.task("build",function(cb){
         "src/basic_shapes/poly.js",
         "src/basic_shapes/path.js",
         "src/basic_shapes/use.js",
+        "src/basic_shapes/image.js",
         
         // footer
         "src/module_footer.js",        

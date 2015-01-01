@@ -168,7 +168,6 @@ svg.extend(function(svgElem,util){
         var n = d.length;
         for(var i = 0; i <n; ++i){
             
-
             // did the programmer tell us that she wanted
             // some properties to be coercied into a number?
             var toNumFlag = false;

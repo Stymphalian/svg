@@ -45,6 +45,28 @@ var svg = (function(){
         }        
     }
 
+
+    svgElem.prototype.reRunMixin = function(){
+        var tag_name = this.dom.tagName;
+
+        // fix up the tag_name for the switch element
+        if( tag_name === "switch"){
+            tag_name = "switchElem";
+        }
+
+        var f = svgElem.prototype[tag_name];
+        function capFirstLetter(s){
+            return s.charAt(0).toUpperCase() + s.slice(1);
+        }
+
+        // by convention, the as<ThingToMixin> method is a property
+        // of the svgElem.<thingToMixin> function
+        // i.e svgElem.circle.asCircle.call(<element>);
+        f["as"+capFirstLetter(f.name)].call(this);
+
+        return this;
+    }
+
     //@return [svgElem] -  clone this element and then return the cloned element
     // TODO: clonded children of the dom don't have an associated svgElem object
     svgElem.prototype.clone = function(){
@@ -58,6 +80,9 @@ var svg = (function(){
                 }
             }            
         }
+
+        // re-apply the mixins to fix up function closures
+        e.reRunMixin();
 
         // attach the node to the same parent
         if( this.dom.parentNode){
