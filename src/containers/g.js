@@ -1,3 +1,4 @@
+//g.js
 svg.extend(function(svgElem,util){
     svgElem.prototype.g = g;
     g.asG = asG;

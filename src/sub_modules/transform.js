@@ -1,3 +1,4 @@
+//transform.js
 svg.plugin(function(svgElem,util){
     
 return {
@@ -9,6 +10,7 @@ return {
 };
 
 function asTransform(context){
+    if( context === undefined || context === null){return this;}
     this.translate = function(){
         return context;
     }

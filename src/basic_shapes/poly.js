@@ -152,7 +152,7 @@ svg.extend(function(svgElem,util){
             points_string = points.join(" ");
         }else if( util.is(p,"string")){
             points_string = points;
-            points = points_string.split(util.regex.points).map(function(v,k,arr){
+            points = points_string.split(util.regex.split_seperator).map(function(v,k,arr){
                 return util.toNum(v);
             });
         }

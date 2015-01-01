@@ -1,3 +1,4 @@
+//shape.js
 svg.plugin(function(svgElem,util){    
 
 return {
@@ -9,6 +10,8 @@ return {
 };
 
 function asShape(context){
+    if( context === undefined || context === null){return this;}
+    
     // setup direct access for each of these properties    
     var d = ['+x','+y','+width','+height','+rx','+ry','+r','+cx','+cy'];
     context.attr.DirectAccessNoFunction(this,d,context);

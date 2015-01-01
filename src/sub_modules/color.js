@@ -1,3 +1,4 @@
+//colro.js
 svg.extend(function(svgElem,util){
     svgElem.prototype.color = new color();
 

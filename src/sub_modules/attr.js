@@ -1,3 +1,4 @@
+//attr.js
 svg.extend(function(svgElem,util){
     svgElem.prototype.attr  = attr;
 

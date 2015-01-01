@@ -1,8 +1,4 @@
-// problems
-// split things out into different files
-// everything is a svgElement
-// creating a new svgElement of a specific tag applies a mixin to provide special methods
-
+// svgElem.js
 var svg = (function(){
     // some global stuff
     var globals = {
@@ -23,7 +19,7 @@ var svg = (function(){
         if(tag_name && Object.prototype.toString.call(tag_name) === "[object String]" ){
             // TODO: should I add ids to every element that gets created??
             this.dom = globals.document.createElementNS(svgElem.prototype.svg_ns,tag_name);
-        }else if( tag_name !== null){
+        }else if( tag_name !== undefined && tag_name !== null){
             // we have passed in a dom node to be used when creating the svgElem
             this.dom = tag_name;
         }
@@ -52,31 +48,49 @@ var svg = (function(){
     //@return [svgElem] -  clone this element and then return the cloned element
     // TODO: clonded children of the dom don't have an associated svgElem object
     svgElem.prototype.clone = function(){
-        var parentNode = this.dom.parentNode;
-        var tag_name = this.dom.tagName.toLowerCase();
-        
-        // create a deep copy of the cloned nodes.
-        var clonedDom = this.dom.cloneNode(true);
-        if(parentNode){
-            parentNode.appendChild(clonedDom);
+        var e = svgElem.prototype.util.clone(this);
+
+        // reomve the plugin instances from the object
+        for( var k in  e){
+            if( svgElem.prototype.plugin.has[k] !== undefined){
+                if( Object.prototype.hasOwnProperty.call(e,k)){
+                    delete e[k];
+                }
+            }            
         }
 
-        // create a new svgElem to use, using the created cloned dom tree
-        var e = new svgElem(clonedDom);        
-
-        // WARNING. 
-        // If we have a 'bound' function being cloned over this will cause
-        // alot of problems because the context may not match up.
-        for(var k in this){
-            if( Object.prototype.hasOwnProperty.call(this,k) ){
-                if( svgElem.prototype.plugin.has[k] !== undefined){
-                    continue;
-                }
-                e[k] = this[k];                
-            }
+        // attach the node to the same parent
+        if( this.dom.parentNode){
+            this.dom.parentNode.appendChild(e.dom);
         }
 
         return e;
+
+        // var parentNode = this.dom.parentNode;
+        // var tag_name = this.dom.tagName.toLowerCase();
+        
+        // // create a deep copy of the cloned nodes.
+        // var clonedDom = this.dom.cloneNode(true);
+        // if(parentNode){
+        //     parentNode.appendChild(clonedDom);
+        // }
+
+        // // create a new svgElem to use, using the created cloned dom tree
+        // var e = new svgElem(clonedDom);        
+
+        // // WARNING. 
+        // // If we have a 'bound' function being cloned over this will cause
+        // // alot of problems because the context may not match up.
+        // for(var k in this){
+        //     if( Object.prototype.hasOwnProperty.call(this,k) ){
+        //         if( svgElem.prototype.plugin.has[k] !== undefined){
+        //             continue;
+        //         }
+        //         e[k] = this[k];
+        //     }
+        // }
+
+        // return e;
     }
 
     

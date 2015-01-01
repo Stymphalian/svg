@@ -1,3 +1,4 @@
+//circle.js
 svg.extend(function(svgElem,util){
     svgElem.prototype.circle = circle;
     circle.asCircle = asCircle;

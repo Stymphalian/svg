@@ -57,6 +57,7 @@ return function(canvas,T){
     l3.point(0,35,35);
 
     var l4 = l3.clone();
+    l4.point(0,40,30);
     l4.add(1,40,80);
     l4.move(50,50);
 

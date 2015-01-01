@@ -1,3 +1,4 @@
+//rect.js
 svg.extend(function(svgElem,util){
     svgElem.prototype.rect = rect;
     rect.asRect = asRect;

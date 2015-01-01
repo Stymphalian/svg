@@ -1,3 +1,4 @@
+//lex.js
 svg.plugin(function(svgElem,util){
 
 return {
@@ -9,6 +10,8 @@ return {
 };
 
 function asLex(context){
+    if( context === undefined || context === null){return this;}
+    
     // @return [svgElem] - an svgElem which wraps the dom node.
     this.parse = function(dom){ 
         if( dom === undefined){return null;}

@@ -25,6 +25,7 @@ require(["svg","testing"], function(svg,T){
         "line_test",
         "polyline_test",
         "polygon_test",
+        "path_test",
                     
         "shape_test",
         // "transform_test"

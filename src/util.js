@@ -1,3 +1,4 @@
+//util.js
 (function(lib){
 
 // ---------------------
@@ -13,7 +14,14 @@ lib.__proto__.util = util;
 
 
 util.regex = {
-    points : /[, ]/
+    // TODO: rename this to split_seperator
+    split_seperator : /[, ]/,
+
+    // pathcommand,pathValue and number regex stolen from snap.svg
+    // https://github.com/adobe-webplatform/Snap.svg/blob/master/src/svg.js
+    pathCommand: /([a-z])[,\s]*((-?\d+\.?\d*(?:e[+-]?\d+)?\s*,?\s*)*)/gi,     
+    pathValues: /(-?\d+\.?\d*(?:e[+-]?\d+)?)\s*,?\s*/gi,
+    number: /(-?\d+\.?\d*(?:e[+-]?\d+)?)/,
 };
 
 // e.g
@@ -30,6 +38,10 @@ util.is = function(obj,typeName){
     var s = "[object ";
     var rs = v.substring(s.length, s.length + typeName.length);
     return (rs === typeName);
+}
+
+util.isUpperCase = function(s){
+    return( s.toUpperCase() === s);
 }
 
 // @purpose - convert the value into a number if possible
@@ -83,4 +95,52 @@ util.mixinFromExports = function(to,from,namedExports,force){
     }   
     return to;
 }
+
+
+// stolen from the dojo library (v.1.9)
+util.clone = function(src){
+    function mixin(dest,source,copyFunc){
+        var name,s,i,empty ={};
+        for(name in source){
+            s = source[name];
+            
+            if(false === (name in dest) || (dest[name] !== s && ((name in empty) == false || empty[name] !== s))){
+                dest[name] = copyFunc ? copyFunc(s) : s;
+            }
+        }
+        return dest;
+    }
+
+    if(!src || typeof src != "object" || util.is(src,"function")){
+        // null,undefined, non-object,function
+        return src;
+    }
+    if( src.nodeType && "cloneNode" in src){
+        // DOM node
+        return src.cloneNode(true);
+    }
+    if( src instanceof Date){
+        // Date
+        return new Date(src.getTime());
+    }
+    if( src instanceof RegExp){
+        return new RegExp(src);
+    }
+
+    var r;
+    if( util.is(src,"array")){
+        // array
+        r = [];
+        var n = src.length;
+        for(var i =0; i < n; ++i){
+            r.push(util.clone(src[i]));
+        }
+    }else{
+        // object
+        r = src.constructor ? new src.constructor() : {};
+    }
+
+    return mixin(r,src,util.clone);
+}
+
 }(svg));

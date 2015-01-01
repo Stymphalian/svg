@@ -1,3 +1,4 @@
+//style.js
 svg.plugin(function(svgElem,util){
 
 return {
@@ -14,6 +15,7 @@ function style(context){
 }
 
 function asStyle(context){
+    if( context === undefined || context === null){return this;}
     
     function clamp01(val){
         if(val < 0 ){val = 0;}

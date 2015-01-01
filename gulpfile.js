@@ -55,6 +55,7 @@ gulp.task("build",function(cb){
         "src/basic_shapes/ellipse.js",
         "src/basic_shapes/line.js",
         "src/basic_shapes/poly.js",
+        "src/basic_shapes/path.js",
         
         // footer
         "src/module_footer.js",        
