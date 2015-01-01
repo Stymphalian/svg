@@ -824,6 +824,12 @@ function asLex(context){
         if( dom === undefined){return null;}
         
         var tag_name = dom.tagName.toLowerCase();
+
+        // HACK, special case for the switch element.
+        if( tag_name === "switch"){
+            tag_name = "switchElem";
+        }
+        
         var e = new svgElem(dom);
         
         // call the as<ThingToMixin> on the element
@@ -1009,6 +1015,7 @@ svg.extend(function(svgElem,util){
     svgElem.prototype.symbol = symbol;
     symbol.asSymbol = asSymbol;
 
+    // @param id [string] - optional. Assign the id of this svgElem
     function symbol(id){
         var e = new svgElem("symbol",this.dom);
 
@@ -1056,6 +1063,23 @@ svg.extend(function(svgElem,util){
             return this;
         }
 
+        return this;
+    }
+});
+//switch.js
+svg.extend(function(svgElem,util){
+    // requiredFeatures
+    // requiredExtensions
+    // systemLanguage
+    svgElem.prototype.switchElem = switchElem;
+    switchElem.asSwitchElem= asSwitchElem;
+
+    function switchElem(){
+        var e = new svgElem("switch",this.dom);
+        return asSwitchElem.call(this);
+    }        
+
+    function asSwitchElem(){
         return this;
     }
 });

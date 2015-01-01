@@ -17,6 +17,12 @@ function asLex(context){
         if( dom === undefined){return null;}
         
         var tag_name = dom.tagName.toLowerCase();
+
+        // HACK, special case for the switch element.
+        if( tag_name === "switch"){
+            tag_name = "switchElem";
+        }
+        
         var e = new svgElem(dom);
         
         // call the as<ThingToMixin> on the element

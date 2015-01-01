@@ -50,6 +50,7 @@ gulp.task("build",function(cb){
         "src/containers/g.js",
         "src/containers/defs.js",
         "src/containers/symbol.js",
+        "src/containers/switch.js",
 
         // basic shapes        
         "src/basic_shapes/rect.js",

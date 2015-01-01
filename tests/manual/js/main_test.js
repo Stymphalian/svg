@@ -30,6 +30,7 @@ require(["svg","testing"], function(svg,T){
         "defs_test",
         "use_test",
         "symbol_test",
+        "switch_test",
                     
         "shape_test",
         // "transform_test"
