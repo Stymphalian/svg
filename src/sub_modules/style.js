@@ -65,12 +65,22 @@ function asStyle(context){
 
     // stroke style property
     this.stroke = stroke;
+
+    // @param val [string] - val can be either a hex string,color, or an rgb
+    //      #ff0033
+    //      rgb(0,0.5,1.0)
+    //      red,green,blue,
     function stroke(val){
         return context.attr("stroke",val);
     }
-    stroke.width = function(val){
+
+    // @param val [string|number] - set the width of the stroke
+    //  available units include: em,ex,px,pt,pc,cm,mm,in
+    //  default units is px
+    stroke.width = function(val){        
         return util.toNum(context.attr("stroke-width",val));
     }
+
     stroke.opacity = function(val){
         return setAttrFloat.call(context,"stroke-opacity",val);
     }    
@@ -79,13 +89,38 @@ function asStyle(context){
     //      array of numbers
     // @return [array] - array of numbers representing the dash_array
     stroke.dasharray = function(val){
-        return setArrayOrStringAttr.call(context,"stroke-dasharray",val);        
+        return setArrayOrStringAttr.call(context,"stroke-dasharray",val);
     }
 
-    
+    // @param val [string] - how far into the dash array should the dasharray pattern be started.
+    stroke.dashoffset = function(val){
+        return context.attr("stroke-dashoffset",val);
+    }
+
+    // What cap should the lines have.
+    // @param val [string]  - butt, round,square, inherit
+    stroke.linecap = function(val){
+        return context.attr("stroke-linecap",val);
+    }
+
+    // the type of caps when two lines join.
+    // @param val [string] - miter,round,bevel,inherit
+    stroke.linejoin = function(val){
+        return context.attr("stroke-linejoin",val);
+    }
+
+    // @param val [number] - must be > 1.0 the amount of miter
+    stroke.miterlimit = function(val){
+        if ( val < 1.0 ){val = 1.0}
+        return context.attr("miterlimit",val);        
+    }
+
 
     // fill style property
-    // @param [string] - val can be either a hex string, or a color (i.e. blue, green,red)
+    // @param [string] - val can be either a hex string,color, or an rgb
+    //      #ff0033
+    //      rgb(0,0.5,1.0)
+    //      red,green,blue,
     this.fill = fill;
     function fill(val){
         return context.attr("fill",val);
@@ -97,6 +132,31 @@ function asStyle(context){
     fill.opacity = function(val){
         return setAttrFloat.call(context,"fill-opacity",val);
     }
+
+    // @param val [string] - nonzero,evenodd
+    fill.rule = function(val){
+        return context.attr("fill-rule",val);
+    }    
+
+
+
+
+    this.marker = marker;
+    function marker(val){}
+    marker.start = function(){}
+    marker.mid = function(){}
+    marker.end = function(){}
+
+    //text-rendering
+    //alignment-baseline
+    //baseline-shift
+    //dominant-baseline
+    //gylph-orientation-horizontal
+    //gylph-orientation-vertical
+    //kerning
+    //stop-color
+    //stop-opacity
+
 }
 
 }); 

@@ -155,6 +155,31 @@ svg.extend(function(svgElem,util){
         }
     }
 
+    // @param d - [ {desired: string,real:string,[isNum:true]}]
+    attr.DirectAccessNoFunctionDiffName = function(to,d,context){
+        if( context === undefined){context = to;}
+        var n = d.length;
+
+        for( var i = 0;i < n; ++i){
+            (function(desired,real,isNum){
+                attr._defineProperty(to,desired,
+                    function(){ //getter
+                        if( isNum){
+                            return util.toNum(context.attr(real));
+                        }else{
+                            return context.attr(real);
+                        }
+                    },
+                    function(val){ // setter
+                        context.attr(real,val);
+                        return context;
+                    }
+                );
+
+            }(d[i].desired,d[i].real,d[i].isNum));
+        }
+    }
+
     
     // @param to [object] - the obbject in which to define the property on    
     // @param d [array] - an array of strings specifying the attributes in which we

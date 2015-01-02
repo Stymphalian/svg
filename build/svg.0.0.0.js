@@ -101,32 +101,10 @@ var svg = (function(){
         }
 
         return e;
+    }
 
-        // var parentNode = this.dom.parentNode;
-        // var tag_name = this.dom.tagName.toLowerCase();
-        
-        // // create a deep copy of the cloned nodes.
-        // var clonedDom = this.dom.cloneNode(true);
-        // if(parentNode){
-        //     parentNode.appendChild(clonedDom);
-        // }
-
-        // // create a new svgElem to use, using the created cloned dom tree
-        // var e = new svgElem(clonedDom);        
-
-        // // WARNING. 
-        // // If we have a 'bound' function being cloned over this will cause
-        // // alot of problems because the context may not match up.
-        // for(var k in this){
-        //     if( Object.prototype.hasOwnProperty.call(this,k) ){
-        //         if( svgElem.prototype.plugin.has[k] !== undefined){
-        //             continue;
-        //         }
-        //         e[k] = this[k];
-        //     }
-        // }
-
-        // return e;
+    svgElem.prototype.createTextNode = function(s){
+        return globals.document.createTextNode(s);
     }
 
     
@@ -165,7 +143,7 @@ var svg = (function(){
             return;
         }
 
-        // define a property on the svgElem prototype
+        // define                                                 a property on the svgElem prototype
         // the first time the user retrieves this plugin
         // a new instance will be created and then set as a property
         // of the calling object. In this way it is possible for
@@ -546,6 +524,31 @@ svg.extend(function(svgElem,util){
         }
     }
 
+    // @param d - [ {desired: string,real:string,[isNum:true]}]
+    attr.DirectAccessNoFunctionDiffName = function(to,d,context){
+        if( context === undefined){context = to;}
+        var n = d.length;
+
+        for( var i = 0;i < n; ++i){
+            (function(desired,real,isNum){
+                attr._defineProperty(to,desired,
+                    function(){ //getter
+                        if( isNum){
+                            return util.toNum(context.attr(real));
+                        }else{
+                            return context.attr(real);
+                        }
+                    },
+                    function(val){ // setter
+                        context.attr(real,val);
+                        return context;
+                    }
+                );
+
+            }(d[i].desired,d[i].real,d[i].isNum));
+        }
+    }
+
     
     // @param to [object] - the obbject in which to define the property on    
     // @param d [array] - an array of strings specifying the attributes in which we
@@ -794,12 +797,22 @@ function asStyle(context){
 
     // stroke style property
     this.stroke = stroke;
+
+    // @param val [string] - val can be either a hex string,color, or an rgb
+    //      #ff0033
+    //      rgb(0,0.5,1.0)
+    //      red,green,blue,
     function stroke(val){
         return context.attr("stroke",val);
     }
-    stroke.width = function(val){
+
+    // @param val [string|number] - set the width of the stroke
+    //  available units include: em,ex,px,pt,pc,cm,mm,in
+    //  default units is px
+    stroke.width = function(val){        
         return util.toNum(context.attr("stroke-width",val));
     }
+
     stroke.opacity = function(val){
         return setAttrFloat.call(context,"stroke-opacity",val);
     }    
@@ -808,13 +821,38 @@ function asStyle(context){
     //      array of numbers
     // @return [array] - array of numbers representing the dash_array
     stroke.dasharray = function(val){
-        return setArrayOrStringAttr.call(context,"stroke-dasharray",val);        
+        return setArrayOrStringAttr.call(context,"stroke-dasharray",val);
     }
 
-    
+    // @param val [string] - how far into the dash array should the dasharray pattern be started.
+    stroke.dashoffset = function(val){
+        return context.attr("stroke-dashoffset",val);
+    }
+
+    // What cap should the lines have.
+    // @param val [string]  - butt, round,square, inherit
+    stroke.linecap = function(val){
+        return context.attr("stroke-linecap",val);
+    }
+
+    // the type of caps when two lines join.
+    // @param val [string] - miter,round,bevel,inherit
+    stroke.linejoin = function(val){
+        return context.attr("stroke-linejoin",val);
+    }
+
+    // @param val [number] - must be > 1.0 the amount of miter
+    stroke.miterlimit = function(val){
+        if ( val < 1.0 ){val = 1.0}
+        return context.attr("miterlimit",val);        
+    }
+
 
     // fill style property
-    // @param [string] - val can be either a hex string, or a color (i.e. blue, green,red)
+    // @param [string] - val can be either a hex string,color, or an rgb
+    //      #ff0033
+    //      rgb(0,0.5,1.0)
+    //      red,green,blue,
     this.fill = fill;
     function fill(val){
         return context.attr("fill",val);
@@ -826,6 +864,31 @@ function asStyle(context){
     fill.opacity = function(val){
         return setAttrFloat.call(context,"fill-opacity",val);
     }
+
+    // @param val [string] - nonzero,evenodd
+    fill.rule = function(val){
+        return context.attr("fill-rule",val);
+    }    
+
+
+
+
+    this.marker = marker;
+    function marker(val){}
+    marker.start = function(){}
+    marker.mid = function(){}
+    marker.end = function(){}
+
+    //text-rendering
+    //alignment-baseline
+    //baseline-shift
+    //dominant-baseline
+    //gylph-orientation-horizontal
+    //gylph-orientation-vertical
+    //kerning
+    //stop-color
+    //stop-opacity
+
 }
 
 }); 
@@ -876,6 +939,42 @@ function asLex(context){
 
     return this;
 }
+
+});
+svg.plugin(function(svgElem,util){
+return {
+    name : "font",
+    constructor :  function font(context){
+        asFont.call(this,context);
+        return this;
+    }
+};
+
+
+//  "font-family": "Arial,Verdana,Helvetica",
+//  "font-size":"45px",
+//  "font-size-adjust":0, // aspect ratio to preserve x-height       
+//  "font-stretch":"normal,wider,narrower,[ultra,extra,semi]-condensed,[ultra,extra,semi]-expanded",    
+//  "font-style": "normal,italic,oblique,inherit",
+//  "font-variant": "normal,small-caps,inherit",
+//  "font-weight": "normal,bold,bolder,lighter,100-900,inherit",
+function asFont(context){
+    if( context === undefined || context === null){return this;}
+
+    var props = [
+        {desired:"family",real:"font-family"},
+        {desired:"size",real:"font-size"},
+        {desired:"size_adjust",real:"font-size-adjust"},
+        {desired:"stretch",real:"font-stretch"},
+        {desired:"style",real:"font-style"},
+        {desired:"variant",real:"font-variant"},
+        {desired:"weight",real:"font-weight"},
+    ];
+    context.attr.DirectAccessNoFunctionDiffName(this,props,context);
+    
+    return this;
+}
+
 
 });
 //svg.js
@@ -1781,6 +1880,104 @@ svg.extend(function(svgElem,util){
 
             this.attr('preserveAspectRatio',defer + " " + align + " " + meetOrSlice);
             return this;
+        }
+
+        return this;
+    }
+
+});
+svg.extend(function(svgElem,util){
+    svgElem.prototype.text = text;
+    text.asText = asText;
+    
+    // @purpose - Create text at a position
+    // @param textString [String] - the String to be displayed.
+    // @param x [Number] - The x position to start the text from
+    // @param y [Number] - The y position determinging the 'bottom' line
+    // @attributes = 
+    //  {
+    //  "text-anchor":"start,middle,end",
+    //  "text-decoration": "none,underline,overline,line-through",
+    //  "text-rendering": "auto,optimizeSpeed,optimizeLegibility,geometricPrecision,inherit",    
+    //  "textLength":42, //Browser will try to fit the text in the given length
+    //  "lengthAdjust": " spacing,spacingAndGlyphs",    
+    //  "kerning":40, //distance between glyphs
+    //  "letter-spacing":5,//distance between letters.Negative numbers will decrease space between letters. 
+    //  "word-spacing":7, //Spacing between words.
+    //  "writing-mode":"lr-tb,rl-tb,tb-rl,lr,rl,tb,inherit",
+    //  "glyph-orientation-vertical": 45, // angle in degrees
+    //  "direction":"ltr,rtl"
+    // }
+    function text(textString,x,y){
+        var e = new svgElem("text",this.dom);
+
+        // set the position of the text node
+        e.attr({x:x,y:y});
+
+        // set the text of the text node
+        e._text_textNode = svgElem.prototype.createTextNode(textString);
+        e.dom.appendChild(e._text_textNode);
+
+        return asText.call(e);
+    }
+
+    function setText(context,val){
+        if( context.dom.contains(context._text_textNode)){
+            context._text_textNode.nodeValue = val;
+        }else{
+            context._text_textNode = svgElem.prototype.createTextNode(val);
+            context.dom.appendChild(context.text_textNode);
+        }
+    }
+    function getText(context){
+        if(context.dom.contains(context._text_textNode)){
+            return context._text_textNode.nodeValue;
+        }else{
+            return "";
+        }
+    }
+    
+    function asText(){
+        this.text = function(val){
+            if( val === undefined){
+                return getText(this);
+            }else{
+                setText(this,val);
+                return this;
+            }
+        }
+
+
+        var props = [
+            {desired:"anchor",real:"text-anchor"},
+            {desired:"decoration",real:"text-decoration"},
+            {desired:"rendering",real:"text-rendering",isNum:true},
+            {desired:"textLength",real:"textLength",isNum:true},
+            {desired:"lengthAdjust",real:"lengthAdjust"},
+            {desired:"kerning",real:"kerning",isNum:true},
+            {desired:"letter_spacing",real:"letter-spacing",isNum:true},
+            {desired:"word_spacing",real:"word-spacing",isNum:true},
+            {desired:"writing_mode",real:"writing-mode"},
+            {desired:"glyph_orientation_vertical",real:"glyph-orientation-vertical",isNum:true},
+            {desired:"direction",real:"direction"},
+        ];
+        for(var i = 0 ;i < props.length;++i){
+            this[props[i].desired] = (function(context,real,isNum){
+                if(isNum){
+                    return function(val){
+                        if( val === undefined){
+                            return util.isNum(context.attr(real));
+                        }else{
+                            context.attr(real,val);
+                            return context;
+                        }
+                    }
+                }else{
+                    return function(val){                        
+                        return context.attr(real,val);
+                    }
+                }                
+            }(this,props[i].real,props[i].isNum));
         }
 
         return this;

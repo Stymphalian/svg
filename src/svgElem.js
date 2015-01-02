@@ -90,32 +90,10 @@ var svg = (function(){
         }
 
         return e;
+    }
 
-        // var parentNode = this.dom.parentNode;
-        // var tag_name = this.dom.tagName.toLowerCase();
-        
-        // // create a deep copy of the cloned nodes.
-        // var clonedDom = this.dom.cloneNode(true);
-        // if(parentNode){
-        //     parentNode.appendChild(clonedDom);
-        // }
-
-        // // create a new svgElem to use, using the created cloned dom tree
-        // var e = new svgElem(clonedDom);        
-
-        // // WARNING. 
-        // // If we have a 'bound' function being cloned over this will cause
-        // // alot of problems because the context may not match up.
-        // for(var k in this){
-        //     if( Object.prototype.hasOwnProperty.call(this,k) ){
-        //         if( svgElem.prototype.plugin.has[k] !== undefined){
-        //             continue;
-        //         }
-        //         e[k] = this[k];
-        //     }
-        // }
-
-        // return e;
+    svgElem.prototype.createTextNode = function(s){
+        return globals.document.createTextNode(s);
     }
 
     
@@ -154,7 +132,7 @@ var svg = (function(){
             return;
         }
 
-        // define a property on the svgElem prototype
+        // define                                                 a property on the svgElem prototype
         // the first time the user retrieves this plugin
         // a new instance will be created and then set as a property
         // of the calling object. In this way it is possible for

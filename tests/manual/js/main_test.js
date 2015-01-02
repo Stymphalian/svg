@@ -28,10 +28,15 @@ require(["svg","testing"], function(svg,T){
         "path_test",
         "image_test",
 
+        "text_test",
+        "font_test",
+
         "defs_test",
         "use_test",
         "symbol_test",
         "switch_test",
+        "a_test",
+        "marker_test",
                     
         "shape_test",
         // "transform_test"
