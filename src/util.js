@@ -1,6 +1,5 @@
 //util.js
-(function(lib){
-
+svg.module(function(lib){
 // ---------------------
 // util under the svgElem
 // This is the one hacky way of getting a utils object into the svgElem namespace
@@ -10,8 +9,7 @@
 // yet still have access to across the library.
 // ---------------------    
 function util(){}    
-lib.__proto__.util = util;
-
+lib.util = util;
 
 util.regex = {
     // TODO: rename this to split_seperator
@@ -170,5 +168,4 @@ util.clone = function(src){
     return mixin(r,src,util.clone);
 }
 
-
-}(svg));
+});

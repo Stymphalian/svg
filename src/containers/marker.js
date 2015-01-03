@@ -1,5 +1,5 @@
 //marker.js
-svg.extend(function(svgElem,util){
+svg.extend(function(svgElem,util,modules){
 svgElem.prototype.marker = marker;
 marker.asMarker = asMarker;
 
@@ -56,7 +56,7 @@ function asMarker(){
         }
     }
 
-    // the reference staring point for all the shaped within the marker
+    // the reference starting point for all the shaped within the marker
     this.ref = function(x,y){
         if( x === undefined){
             return {
@@ -72,23 +72,7 @@ function asMarker(){
         }
     }
 
-    // receive a rect specifying the viewport units for the element.
-    this.viewBox = function(x,y,w,h){
-        if( x === undefined){
-            var rs = this.attr("viewBox");
-            if( rs === null){return null;}
-            
-            rs = rs.split(" ");
-            return {
-                x : parseFloat(rs[0]),
-                y : parseFloat(rs[1]),
-                w : parseFloat(rs[2]),
-                h : parseFloat(rs[3])
-            }                
-        }else{
-            this.attr('viewBox',[x,y,w,h].join(" "));
-        }            
-    }
+    modules.common.asViewport.call(this);
 
     return this;
 }

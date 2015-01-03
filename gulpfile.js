@@ -33,9 +33,11 @@ gulp.task("build",function(cb){
         // header
         "src/module_banner.js",
 
-        // base class
-        "src/svgElem.js",
+        // top-level classes
+        "src/lib.js",
         "src/util.js",
+        "src/svgElem.js",
+        "src/common_mixins.js",
 
         // sub-modules
         "src/sub_modules/color.js",
@@ -48,7 +50,8 @@ gulp.task("build",function(cb){
         "src/sub_modules/mark.js",
 
         // containers
-        "src/containers/svg.js",
+        "src/containers/svg.js", // must be the first element defined
+
         "src/containers/g.js",
         "src/containers/defs.js",
         "src/containers/symbol.js",
@@ -61,13 +64,13 @@ gulp.task("build",function(cb){
         "src/basic_shapes/circle.js",
         "src/basic_shapes/ellipse.js",
         "src/basic_shapes/line.js",
-        "src/basic_shapes/poly.js",
+        "src/basic_shapes/poly.js", // polyline,polygon
         "src/basic_shapes/path.js",
         "src/basic_shapes/use.js",
         "src/basic_shapes/image.js",        
 
         "src/basic_shapes/text.js",
-        "src/basic_shapes/text_extensions.js",        
+        "src/basic_shapes/text_extensions.js", // tspan,tref,textPath
 
         // footer
         "src/module_footer.js",        

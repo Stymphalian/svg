@@ -9,111 +9,26 @@
 } (this,function(){
     // factory function used to define the module
 
-// svgElem.js
+//lib.js
 var svg = (function(){
-    // some global stuff
-    var globals = {
-        window : window,
-        document : window.document
+
+    function lib(){}
+    lib.util = {};
+    lib.svgElem = {}; // these two modules must exist
+
+    lib.version = "0.0.0";
+    // a cache of modules we can add to the library accessible by all
+    // extends,plugins and modules
+    lib.modules = {}
+
+    lib.module = function(func){
+        func(lib);
     }
 
-    svgElem.prototype.version = "0.0.0";
-    svgElem.prototype.svg_ns = 'http://www.w3.org/2000/svg';
-    svgElem.prototype.xlink_ns = 'http://www.w3.org/1999/xlink';
-    svgElem.prototype.xml_ns = 'http://www.w3.org/2000/xmlns/';
-
-    // define the base svg element
-    // tag_name : the element in which we want to create
-    // parent_node : the DOM node in whcih to append the newly created node under.
-    function svgElem(tag_name,parent_node){        
-
-        if(tag_name && Object.prototype.toString.call(tag_name) === "[object String]" ){
-            // TODO: should I add ids to every element that gets created??
-            this.dom = globals.document.createElementNS(svgElem.prototype.svg_ns,tag_name);
-        }else if( tag_name !== undefined && tag_name !== null){
-            // we have passed in a dom node to be used when creating the svgElem
-            this.dom = tag_name;
-        }
-
-        if(parent_node){
-            parent_node.appendChild(this.dom);
-        }
-    }    
-
-    // delete all children svg nodes under this element
-    svgElem.prototype.clear = function(){
-        while(this.dom.firstChild){
-            this.dom.removeChild(this.dom.firstChild);
-        }
-        return this;
-    }
-
-    // remove this element from its parent
-    svgElem.prototype.remove = function(){
-        this.clear();
-        if( this.dom.parentNode){
-            this.dom.parentNode.removeChild(this.dom);
-        }        
-    }
-
-
-    svgElem.prototype.reRunMixin = function(){
-        var tag_name = this.dom.tagName;
-
-        // fix up the tag_name for the switch element
-        if( tag_name === "switch"){
-            tag_name = "switchElem";
-        }
-
-        var f = svgElem.prototype[tag_name];
-        function capFirstLetter(s){
-            return s.charAt(0).toUpperCase() + s.slice(1);
-        }
-
-        // by convention, the as<ThingToMixin> method is a property
-        // of the svgElem.<thingToMixin> function
-        // i.e svgElem.circle.asCircle.call(<element>);
-        f["as"+capFirstLetter(f.name)].call(this);
-
-        return this;
-    }
-
-    //@return [svgElem] -  clone this element and then return the cloned element
-    // TODO: clonded children of the dom don't have an associated svgElem object
-    svgElem.prototype.clone = function(){
-        var e = svgElem.prototype.util.clone(this);
-
-        // reomve the plugin instances from the object
-        for( var k in  e){
-            if( svgElem.prototype.plugin.has[k] !== undefined){
-                if( Object.prototype.hasOwnProperty.call(e,k)){
-                    delete e[k];
-                }
-            }            
-        }
-
-        // re-apply the mixins to fix up function closures
-        e.reRunMixin();
-
-        // attach the node to the same parent
-        if( this.dom.parentNode){
-            this.dom.parentNode.appendChild(e.dom);
-        }
-
-        return e;
-    }
-
-    svgElem.prototype.createTextNode = function(s){
-        return globals.document.createTextNode(s);
-    }
-
-    
     // pass-in a function and recieve 
-    // func(svgElem){...}    
-    svgElem.prototype.extend = function(func){
-        // svgElem.prototype.util comes from the util.js file
-        // it gets added to the svgElem prototype
-        func(svgElem,svgElem.prototype.util);
+    // func(svgElem){...}        
+    lib.extend = function(func){
+        func(lib.svgElem,lib.util,lib.modules);
     }
 
     // pass in a function which meets the signature
@@ -126,24 +41,24 @@ var svg = (function(){
     // }
     // _plugin_list allows us to keep track of what properties
     // in our svgElem is a plugin, therefore when we do our copy
-    // then we know what we are allowed to copy and can't copy.
-    
-    svgElem.prototype.plugin = function(func,overwrite){        
+    // then we know what we are allowed to copy and can't copy.    
+    lib.plugin = function(func,overwrite){        
         // return vlaue from the function will be added as a property under the svgElem
         // access goes through that module and all 
+        var svgElem = lib.svgElem;
         var hasOwn = Object.prototype.hasOwnProperty;
-        var rs = func(svgElem,svgElem.prototype.util);
+        var rs = func(lib.svgElem,lib.util,lib.modules);
 
         if( hasOwn.call(rs,"name") === false){return;}
         if( hasOwn.call(rs,"constructor") === false){return;}
         if(overwrite === undefined){overwrite = false;}
 
         // we can overwrite a plugin if we are forced to.
-        if(svgElem.prototype.plugin.has[rs.name] === true && overwrite === false){
+        if(lib.plugin.has[rs.name] === true && overwrite === false){
             return;
         }
 
-        // define                                                 a property on the svgElem prototype
+        // define a property on the svgElem prototype
         // the first time the user retrieves this plugin
         // a new instance will be created and then set as a property
         // of the calling object. In this way it is possible for
@@ -152,8 +67,8 @@ var svg = (function(){
         // we do this round about way in order to access the plugin using the 
         // simpler syntax
         //      elem.<plugin> instead of elem.<plugin>()        
-        svgElem.prototype.plugin.has[rs.name] = true;
-        Object.defineProperty(svgElem.prototype,rs.name,{            
+        lib.plugin.has[rs.name] = true;
+        Object.defineProperty(svgElem.prototype,rs.name,{
             get : function(){                                
                 var instance = new rs.constructor(this);
                 Object.defineProperty(this,rs.name,{
@@ -169,13 +84,12 @@ var svg = (function(){
             enumerable: true
         });
     }
-    svgElem.prototype.plugin.has = {};
+    lib.plugin.has ={};
 
-    return new svgElem();
+    return lib;
 }());
 //util.js
-(function(lib){
-
+svg.module(function(lib){
 // ---------------------
 // util under the svgElem
 // This is the one hacky way of getting a utils object into the svgElem namespace
@@ -185,8 +99,7 @@ var svg = (function(){
 // yet still have access to across the library.
 // ---------------------    
 function util(){}    
-lib.__proto__.util = util;
-
+lib.util = util;
 
 util.regex = {
     // TODO: rename this to split_seperator
@@ -345,8 +258,167 @@ util.clone = function(src){
     return mixin(r,src,util.clone);
 }
 
+});
 
-}(svg));
+// svgElem.js
+svg.module(function(lib){
+    lib.svgElem = svgElem;
+
+    // some global stuff
+    var globals = {
+        window : window,
+        document : window.document
+    }
+
+    svgElem.prototype.svg_ns = 'http://www.w3.org/2000/svg';
+    svgElem.prototype.xlink_ns = 'http://www.w3.org/1999/xlink';
+    svgElem.prototype.xml_ns = 'http://www.w3.org/2000/xmlns/';
+
+    // define the base svg element
+    // tag_name : the element in which we want to create
+    // parent_node : the DOM node in whcih to append the newly created node under.
+    function svgElem(tag_name,parent_node){        
+
+        if(tag_name && Object.prototype.toString.call(tag_name) === "[object String]" ){
+            // TODO: should I add ids to every element that gets created??
+            this.dom = globals.document.createElementNS(svgElem.prototype.svg_ns,tag_name);
+        }else if( tag_name !== undefined && tag_name !== null){
+            // we have passed in a dom node to be used when creating the svgElem
+            this.dom = tag_name;
+        }
+
+        if(parent_node){
+            parent_node.appendChild(this.dom);
+        }
+    }    
+
+    // delete all children svg nodes under this element
+    svgElem.prototype.clear = function(){
+        while(this.dom.firstChild){
+            this.dom.removeChild(this.dom.firstChild);
+        }
+        return this;
+    }
+
+    // remove this element from its parent
+    svgElem.prototype.remove = function(){
+        this.clear();
+        if( this.dom.parentNode){
+            this.dom.parentNode.removeChild(this.dom);
+        }        
+    }
+
+
+    svgElem.prototype.reRunMixin = function(){
+        var tag_name = this.dom.tagName;
+
+        // fix up the tag_name for the switch element
+        if( tag_name === "switch"){
+            tag_name = "switchElem";
+        }
+
+        var f = svgElem.prototype[tag_name];
+        function capFirstLetter(s){
+            return s.charAt(0).toUpperCase() + s.slice(1);
+        }
+
+        // by convention, the as<ThingToMixin> method is a property
+        // of the svgElem.<thingToMixin> function
+        // i.e svgElem.circle.asCircle.call(<element>);
+        var asFuncs = f["as"+capFirstLetter(f.name)];
+        if( asFuncs && Object.prototype.toString.call(this) === "[object Function]"){
+            // there was only a singe function attached
+            asFuncs = [asFuncs];            
+        }
+
+        // an array of functions
+        // call all the mixins listed in the array
+        for(var i = 0; i < asFuncs.length; ++i){
+            asFuncs[i].call(this);
+        }
+        
+        return this;
+    }
+
+    //@return [svgElem] -  clone this element and then return the cloned element
+    // TODO: clonded children of the dom don't have an associated svgElem object
+    svgElem.prototype.clone = function(){
+        var e = lib.util.clone(this);
+
+        // reomve the plugin instances from the object
+        for( var k in  e){
+            if( lib.plugin.has[k] !== undefined){
+                if( Object.prototype.hasOwnProperty.call(e,k)){
+                    delete e[k];
+                }
+            }            
+        }
+
+        // re-apply the mixins to fix up function closures
+        e.reRunMixin();
+
+        // attach the node to the same parent
+        if( this.dom.parentNode){
+            this.dom.parentNode.appendChild(e.dom);
+        }
+
+        return e;
+    }
+
+    svgElem.prototype.createTextNode = function(s){
+        return globals.document.createTextNode(s);
+    }
+
+});
+svg.module(function(lib){
+lib.modules["common"] = common;
+
+// has dependencies on svgElem.js,attr.js
+var util = lib.util;
+var svgElem = lib.svgElem;
+function common(){}
+
+common.asViewport = function(){    
+    // receive a rect specifying the viewport units for the element.
+    this.viewBox = function(x,y,w,h){
+        if( x === undefined){
+            var rs = this.attr("viewBox");
+            if( rs === null){return null;}
+            
+            rs = rs.split(" ");
+            return {
+                x : parseFloat(rs[0]),
+                y : parseFloat(rs[1]),
+                w : parseFloat(rs[2]),
+                h : parseFloat(rs[3])
+            }                
+        }else{
+            this.attr('viewBox',[x,y,w,h].join(" "));
+        }            
+    }
+
+    // align :
+    //  none, x[Min,Mid,Max]Y[Min,Mid,Max]
+    // meetOrSlice :
+    //  meet,slice
+    this.preserveAspectRatio = function(align,defer,meetOrSlice){            
+        defer = (defer === undefined) ? "" : defer;
+        meetOrSlice (meetOrSlice === udnefined) ? "" : meetOrSlice;                
+
+        this.attr('preserveAspectRatio',defer + " " + align + " " + meetOrSlice);
+        return this;
+    }
+
+
+    this.zoom = function(times){
+        console.warn("zoom not implemented");
+        return this;
+    }
+
+    return this;
+}
+
+});
 //colro.js
 svg.extend(function(svgElem,util){
     svgElem.prototype.color = new color();
@@ -1103,44 +1175,15 @@ function asMark(context){
 
 })
 //svg.js
-svg.extend(function(svgElem,util){
-    svgElem.prototype.svg = svg;
-    svgElem.prototype.svgRoot = svgRoot;
-    svg.asSvg = asSvg;
-
-    function svgRoot(parentElementId,width,height){
-        var container = document.getElementById(parentElementId);       
-        if( container === null){
-            console.error("Invalid parent container id");
-            return null;
-        }
-
-        if( width === undefined){width = container.clientWidth;}
-        if( height === undefined){height = container.clientHeight;}
-
-        // create the new svgElem
-        var e = new svgElem("svg",container);        
-        e.attr({'x' :0, 'y' :0 ,'width' : width, 'height' :height });
-        canvas = asSvg.call(e);
-        
-        canvas.dom.setAttribute("xmlns",svgElem.prototype.svg_ns);
-        canvas.dom.setAttributeNS(svgElem.prototype.xml_ns,"xmlns:xlink",svgElem.prototype.xlink_ns);
-        canvas.attr({
-                    "version":"1.1",
-                    "baseProfile":"full",        
-                    });
-        // TODO: Find out why I can't use the attr to set this attribute
-        
-        return canvas;
-    }
-
-    function svg(x,y,w,h){
+svg.extend(function(svgElem,util,modules){
+    svgElem.prototype.svg = function svg(x,y,w,h){
         var e = new svgElem("svg",this.dom);
         e.attr({'x' :x, 'y' :y ,'width' : w, 'height' :h });
 
         asSvg.call(e);
         return e;
     }
+    svgElem.prototype.svg.asSvg = asSvg;
 
     function asSvg(){                
         this.pos = function(x,y){
@@ -1157,46 +1200,45 @@ svg.extend(function(svgElem,util){
             }            
         }
 
-        // receive a rect specifying the viewport units for the element.
-        this.viewBox = function(x,y,w,h){
-            if( x === undefined){
-                var rs = this.attr("viewBox");
-                if( rs === null){return null;}
-                
-                rs = rs.split(" ");
-                return {
-                    x : parseFloat(rs[0]),
-                    y : parseFloat(rs[1]),
-                    w : parseFloat(rs[2]),
-                    h : parseFloat(rs[3])
-                }                
-            }else{
-                this.attr('viewBox',[x,y,w,h].join(" "));
-            }            
-        }
-
-        // align :
-        //  none, x[Min,Mid,Max]Y[Min,Mid,Max]
-        // meetOrSlice :
-        //  meet,slice
-        this.preserveAspectRatio = function(align,defer,meetOrSlice){            
-            defer = (defer === undefined) ? "" : defer;
-            meetOrSlice (meetOrSlice === udnefined) ? "" : meetOrSlice;                
-
-            this.attr('preserveAspectRatio',defer + " " + align + " " + meetOrSlice);
-            return this;
-        }
-
-
-        this.zoom = function(times){
-            console.warn("zoom not implemented");
-            return this;
-        }
+        // mixin viewport properties to the element.s
+        modules.common.asViewport.call(this);
 
         return this;        
     }
+});
 
-})
+svg.module(function(lib){
+    lib.svgRoot = svgRoot;
+
+    var svgElem = lib.svgElem;    
+    svgElem.prototype.svgRoot = svgRoot;
+    svgRoot.asSvgRoot = svgElem.prototype.svg.asSvg;
+
+    // dependencies required
+    // svgElem.js, svg.js
+    // allow the user to create a top-level svg element under a div or iframe
+    function svgRoot(parentElementId,width,height){
+        var container = document.getElementById(parentElementId);       
+        if( container === null){
+            console.error("Invalid parent container id");
+            return null;
+        }
+
+        if( width === undefined){width = container.clientWidth;}
+        if( height === undefined){height = container.clientHeight;}
+
+        // create the new svgElem
+        var canvas = new svgElem("svg",container);
+        canvas.attr({'x' :0, 'y' :0 ,'width' : width, 'height' :height });
+        svgElem.prototype.svg.asSvg.call(canvas);
+        
+        canvas.dom.setAttribute("xmlns",svgElem.prototype.svg_ns);
+        canvas.dom.setAttributeNS(svgElem.prototype.xml_ns,"xmlns:xlink",svgElem.prototype.xlink_ns);
+        canvas.attr({"version":"1.1", "baseProfile":"full"});
+        
+        return canvas;
+    }
+});
 //g.js
 svg.extend(function(svgElem,util){
     svgElem.prototype.g = g;
@@ -1259,7 +1301,7 @@ svg.extend(function(svgElem,util){
     }
 
 });
-svg.extend(function(svgElem,util){
+svg.extend(function(svgElem,util,modules){
     svgElem.prototype.symbol = symbol;
     symbol.asSymbol = asSymbol;
 
@@ -1275,42 +1317,12 @@ svg.extend(function(svgElem,util){
     }
 
     function asSymbol(){
-
         this.id = function(val){
             return this.attr("id",val);
         }
+
+        modules.common.asViewport.call(this);
                 
-        // TODO: this was copied direclty from the svg.js:asSvg() method        
-        // receive a rect specifying the viewport units for the element.
-        this.viewBox = function(x,y,w,h){
-            if( x === undefined){
-                var rs = this.attr("viewBox");
-                if( rs === null){return null;}
-                
-                rs = rs.split(" ");
-                return {
-                    x : util.toNum(rs[0]),
-                    y : util.toNum(rs[1]),
-                    w : util.toNum(rs[2]),
-                    h : util.toNum(rs[3])
-                }                
-            }else{
-                this.attr('viewBox',[x,y,w,h].join(" "));
-            }            
-        }
-
-        // align :
-        //  none, x[Min,Mid,Max]Y[Min,Mid,Max]
-        // meetOrSlice :
-        //  meet,slice
-        this.preserveAspectRatio = function(align,defer,meetOrSlice){            
-            defer = (defer === undefined) ? "" : defer;
-            meetOrSlice (meetOrSlice === udnefined) ? "" : meetOrSlice;                
-
-            this.attr('preserveAspectRatio',defer + " " + align + " " + meetOrSlice);
-            return this;
-        }
-
         return this;
     }
 });
@@ -1374,7 +1386,7 @@ svg.extend(function(svgElem,util){
 
 });
 //marker.js
-svg.extend(function(svgElem,util){
+svg.extend(function(svgElem,util,modules){
 svgElem.prototype.marker = marker;
 marker.asMarker = asMarker;
 
@@ -1447,23 +1459,7 @@ function asMarker(){
         }
     }
 
-    // receive a rect specifying the viewport units for the element.
-    this.viewBox = function(x,y,w,h){
-        if( x === undefined){
-            var rs = this.attr("viewBox");
-            if( rs === null){return null;}
-            
-            rs = rs.split(" ");
-            return {
-                x : parseFloat(rs[0]),
-                y : parseFloat(rs[1]),
-                w : parseFloat(rs[2]),
-                h : parseFloat(rs[3])
-            }                
-        }else{
-            this.attr('viewBox',[x,y,w,h].join(" "));
-        }            
-    }
+    modules.common.asViewport.call(this);
 
     return this;
 }
