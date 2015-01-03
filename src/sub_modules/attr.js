@@ -155,13 +155,24 @@ svg.extend(function(svgElem,util){
         }
     }
 
-    // @param d - [ {desired: string,real:string,[isNum:true]}]
+    // @param to [object] - the obbject in which to define the property on    
+    // @param d [array] - an array of objects which have the following struture
+    // {
+    //     desired: string, // the desired name to access from
+    //     real : string,  // the real name of property
+    //     isNum : boolean // optional, used to denote if the attribute should be treated as a number
+    // }
+    // @param context [object|function] - optional. A context in which we want to work with
+    //      in most cases, to will === context. If not context is given then we assume it
+    //      is the same as the 'to' context
     attr.DirectAccessNoFunctionDiffName = function(to,d,context){
         if( context === undefined){context = to;}
         var n = d.length;
 
         for( var i = 0;i < n; ++i){
             (function(desired,real,isNum){
+                if(isNum === undefined){isNum = false;}
+
                 attr._defineProperty(to,desired,
                     function(){ //getter
                         if( isNum){
@@ -219,4 +230,43 @@ svg.extend(function(svgElem,util){
             }(k,toNumFlag));
         }
     }
+
+    // @param to [object] - the obbject in which to define the property on    
+    // @param d [array] - an array of objects which have the following struture
+    // {
+    //     desired: string, // the desired name to access from
+    //     real : string,  // optional. if not provided then we assume the noraml desired.
+    //     isNum : boolean // optional, used to denote if the attribute should be treated as a number
+    // }
+    // @param context [object|function] - optional. A context in which we want to work with
+    //      in most cases, to will === context. If not context is given then we assume it
+    //      is the same as the 'to' context
+    attr.DirectAccessDiffName = function(to,d,context){
+        if( context === undefined){context = to;}
+        var n = d.length;
+
+        for( var i = 0;i < n; ++i){
+            // return a function closure which holds
+            // the desired,real and isNum values
+            to[d[i].desired] = (function(desired,real,isNum){
+                if(isNum === undefined){isNum = false;}
+                if(real === undefined){real = desired;}
+
+                return function(val){
+                    if(val === undefined){
+                        if( isNum){
+                            return util.toNum(contex.attr(real));
+                        }else{
+                            return contex.attr(real);
+                        }
+                    }else{
+                        context.attr(real,val);
+                        return context;
+                    }
+                };
+
+            }(d[i].desired,d[i].real,d[i].isNum));
+        }
+    }
+
 });

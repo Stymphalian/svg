@@ -45,6 +45,7 @@ gulp.task("build",function(cb){
         "src/sub_modules/style.js",
         "src/sub_modules/lex.js",
         "src/sub_modules/font.js",
+        "src/sub_modules/mark.js",
 
         // containers
         "src/containers/svg.js",
@@ -52,7 +53,8 @@ gulp.task("build",function(cb){
         "src/containers/defs.js",
         "src/containers/symbol.js",
         "src/containers/switch.js",
-        "src/basic_shapes/a.js",
+        "src/containers/a.js",
+        "src/containers/marker.js",
 
         // basic shapes        
         "src/basic_shapes/rect.js",
@@ -62,10 +64,11 @@ gulp.task("build",function(cb){
         "src/basic_shapes/poly.js",
         "src/basic_shapes/path.js",
         "src/basic_shapes/use.js",
-        "src/basic_shapes/image.js",
+        "src/basic_shapes/image.js",        
+
         "src/basic_shapes/text.js",
-        "src/basic_shapes/marker.js",
-        
+        "src/basic_shapes/text_extensions.js",        
+
         // footer
         "src/module_footer.js",        
     ])

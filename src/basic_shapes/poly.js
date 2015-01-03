@@ -143,6 +143,7 @@ svg.extend(function(svgElem,util){
 
 
     function arrayOrString(p){
+        if( p === undefined || p === null){return null;}
         var points = p;
         var points_string = "";
 

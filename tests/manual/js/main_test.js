@@ -30,6 +30,9 @@ require(["svg","testing"], function(svg,T){
 
         "text_test",
         "font_test",
+        "tspan_test",
+        "tref_test",
+        "textPath_test",
 
         "defs_test",
         "use_test",

@@ -97,6 +97,33 @@ util.mixinFromExports = function(to,from,namedExports,force){
 }
 
 
+
+
+// @return { points: [], points_string: string}
+//  returns the value in two representations
+//      points = array of numbers
+//      points_string = space seperated value representation of the points list
+util.arrayOrString = function(p){
+    var points = p;
+    var points_string = "";
+
+    if(util.is(p,"array")){
+        // process as an array
+        points = p;
+        points_string = points.join(" ");
+    }else if( util.is(p,"string")){
+        points_string = points;
+        points = points_string.split(util.regex.split_seperator).map(function(v,k,arr){
+            return util.toNum(v);
+        });
+    }
+
+    return {
+        points:points,
+        points_string: points_string
+    };
+}
+
 // stolen from the dojo library (v.1.9)
 util.clone = function(src){
     function mixin(dest,source,copyFunc){
@@ -142,5 +169,6 @@ util.clone = function(src){
 
     return mixin(r,src,util.clone);
 }
+
 
 }(svg));

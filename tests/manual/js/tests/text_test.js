@@ -3,7 +3,7 @@ return function(canvas,T){
     var t = canvas.text("svg",100,10);
     T.assertEq(t.text(),"svg");
     t.text(t.text() + " is here");
-    T.assertEq(t.text(),"svg is here");
+    T.assertEq(t.text(true),"svg is here");
 
     // tesing anchor
     t = canvas.text("svg is here",100,20)

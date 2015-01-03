@@ -3,9 +3,6 @@ svg.extend(function(svgElem,util){
     svgElem.prototype.path = path;
     path.asPath = asPath;
     
-
-
-
     // relative(lower-case),absolute(upper-case)
     // Move                         (M x y)
     // Line To                      (L x y)

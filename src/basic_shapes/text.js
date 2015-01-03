@@ -24,41 +24,99 @@ svg.extend(function(svgElem,util){
         var e = new svgElem("text",this.dom);
 
         // set the position of the text node
-        e.attr({x:x,y:y});
-
-        // set the text of the text node
+        if( x !== undefined && y !== undefined){
+            e.attr({x:x,y:y});
+        }
+        
+        // set the text of the text node        
+        if(textString === undefined){textString = "";}
         e._text_textNode = svgElem.prototype.createTextNode(textString);
         e.dom.appendChild(e._text_textNode);
-
+        
         return asText.call(e);
     }
 
-    function setText(context,val){
-        if( context.dom.contains(context._text_textNode)){
+    // @param context [object] - the reference svgElem we should use when setting the text
+    // @param t [stirng] - the text value we should use when setting the textContext
+    function setText(context,val){        
+        if( val === undefined){val = "";}
+
+        if( context.dom.contains(context._text_textNode)){            
             context._text_textNode.nodeValue = val;
         }else{
-            context._text_textNode = svgElem.prototype.createTextNode(val);
-            context.dom.appendChild(context.text_textNode);
+
+            // serach for an available textNode to use our text node???
+            var children = context.dom.childNodes;
+            var n = children.length;
+            var foundFlag = false;
+            for(var i = 0;i < n; ++i){
+                if( children[i].nodeName === "#text"){
+                    context._text_textNode = children[i];
+                    foundFlag = true;                    
+                    break;
+                }
+            }
+
+            if( foundFlag === false){                
+                context._text_textNode = svgElem.prototype.createTextNode(val);
+            }
+
+            context.dom.appendChild(context._text_textNode);
         }
     }
-    function getText(context){
-        if(context.dom.contains(context._text_textNode)){
-            return context._text_textNode.nodeValue;
+
+    function getTextInternal(dom,recurse){        
+        if( dom.hasChildNodes() === false){
+            if( dom.nodeName === "#text"){
+                return dom.nodeValue;
+            }else{
+                return "";
+            }            
+        }
+
+        var s = "";
+        var children = dom.childNodes;
+        var n = children.length;
+        for( var i = 0;i < n; ++i){            
+            if(recurse){
+                s += getTextInternal(children[i],recurse);
+            }else{
+                if( children[i].nodeName === "#text"){
+                    s += children[i].nodeValue;
+                }
+            }
+        }
+        return s;
+    }
+
+    function getText(context,recurse){                
+        if(recurse){
+            return getTextInternal(context.dom,true);
         }else{
-            return "";
+            if(context.dom.contains(context._text_textNode)){
+                return context._text_textNode.nodeValue;
+            }else{
+                return "";
+            }
         }
     }
     
     function asText(){
-        this.text = function(val){
-            if( val === undefined){
-                return getText(this);
+        this.text = function(val){            
+            if( val === undefined || util.is(val,"boolean")){
+                return getText(this,val);
             }else{
                 setText(this,val);
                 return this;
             }
         }
 
+        this.x = function(val){
+            return util.toNum(this.attr("x",val));
+        }
+        this.y = function(val){
+            return util.toNum(this.attr("y",val));
+        }
 
         var props = [
             {desired:"anchor",real:"text-anchor"},
@@ -73,24 +131,7 @@ svg.extend(function(svgElem,util){
             {desired:"glyph_orientation_vertical",real:"glyph-orientation-vertical",isNum:true},
             {desired:"direction",real:"direction"},
         ];
-        for(var i = 0 ;i < props.length;++i){
-            this[props[i].desired] = (function(context,real,isNum){
-                if(isNum){
-                    return function(val){
-                        if( val === undefined){
-                            return util.isNum(context.attr(real));
-                        }else{
-                            context.attr(real,val);
-                            return context;
-                        }
-                    }
-                }else{
-                    return function(val){                        
-                        return context.attr(real,val);
-                    }
-                }                
-            }(this,props[i].real,props[i].isNum));
-        }
+        this.attr.DirectAccessDiffName(this,props);        
 
         return this;
     }

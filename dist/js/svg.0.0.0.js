@@ -272,6 +272,33 @@ util.mixinFromExports = function(to,from,namedExports,force){
 }
 
 
+
+
+// @return { points: [], points_string: string}
+//  returns the value in two representations
+//      points = array of numbers
+//      points_string = space seperated value representation of the points list
+util.arrayOrString = function(p){
+    var points = p;
+    var points_string = "";
+
+    if(util.is(p,"array")){
+        // process as an array
+        points = p;
+        points_string = points.join(" ");
+    }else if( util.is(p,"string")){
+        points_string = points;
+        points = points_string.split(util.regex.split_seperator).map(function(v,k,arr){
+            return util.toNum(v);
+        });
+    }
+
+    return {
+        points:points,
+        points_string: points_string
+    };
+}
+
 // stolen from the dojo library (v.1.9)
 util.clone = function(src){
     function mixin(dest,source,copyFunc){
@@ -317,6 +344,7 @@ util.clone = function(src){
 
     return mixin(r,src,util.clone);
 }
+
 
 }(svg));
 //colro.js
@@ -524,13 +552,24 @@ svg.extend(function(svgElem,util){
         }
     }
 
-    // @param d - [ {desired: string,real:string,[isNum:true]}]
+    // @param to [object] - the obbject in which to define the property on    
+    // @param d [array] - an array of objects which have the following struture
+    // {
+    //     desired: string, // the desired name to access from
+    //     real : string,  // the real name of property
+    //     isNum : boolean // optional, used to denote if the attribute should be treated as a number
+    // }
+    // @param context [object|function] - optional. A context in which we want to work with
+    //      in most cases, to will === context. If not context is given then we assume it
+    //      is the same as the 'to' context
     attr.DirectAccessNoFunctionDiffName = function(to,d,context){
         if( context === undefined){context = to;}
         var n = d.length;
 
         for( var i = 0;i < n; ++i){
             (function(desired,real,isNum){
+                if(isNum === undefined){isNum = false;}
+
                 attr._defineProperty(to,desired,
                     function(){ //getter
                         if( isNum){
@@ -588,6 +627,45 @@ svg.extend(function(svgElem,util){
             }(k,toNumFlag));
         }
     }
+
+    // @param to [object] - the obbject in which to define the property on    
+    // @param d [array] - an array of objects which have the following struture
+    // {
+    //     desired: string, // the desired name to access from
+    //     real : string,  // optional. if not provided then we assume the noraml desired.
+    //     isNum : boolean // optional, used to denote if the attribute should be treated as a number
+    // }
+    // @param context [object|function] - optional. A context in which we want to work with
+    //      in most cases, to will === context. If not context is given then we assume it
+    //      is the same as the 'to' context
+    attr.DirectAccessDiffName = function(to,d,context){
+        if( context === undefined){context = to;}
+        var n = d.length;
+
+        for( var i = 0;i < n; ++i){
+            // return a function closure which holds
+            // the desired,real and isNum values
+            to[d[i].desired] = (function(desired,real,isNum){
+                if(isNum === undefined){isNum = false;}
+                if(real === undefined){real = desired;}
+
+                return function(val){
+                    if(val === undefined){
+                        if( isNum){
+                            return util.toNum(contex.attr(real));
+                        }else{
+                            return contex.attr(real);
+                        }
+                    }else{
+                        context.attr(real,val);
+                        return context;
+                    }
+                };
+
+            }(d[i].desired,d[i].real,d[i].isNum));
+        }
+    }
+
 });
 //shape.js
 svg.plugin(function(svgElem,util){    
@@ -977,6 +1055,53 @@ function asFont(context){
 
 
 });
+svg.plugin(function(svgElem,util){
+
+// this plugin allows the user to quickly set the
+// marker-[start|middle|end] properties of an svg line,polyling,polygon 
+// and path element
+
+return {
+    name: "mark",
+    constructor : mark
+};
+
+function mark(context){
+    asMark.call(this,context);
+    return this;
+}
+
+function asMark(context){
+
+    function markAccess(context,type,id){
+        if( id === undefined){
+            var rs = context.attr(type);
+            if( rs === undefined || rs == null){
+                return "";
+            }
+
+            // position 5 allows us to chop off the 'url(#' part of the string
+            // the -1 allows us to take off the end ')'
+            return rs.slice(5,-1);                        
+        }else{
+            // append the # if it is missing
+            if( id.charAt(0) !== '#'){
+                id = "#" + id;
+            }
+            context.attr(type,"url(" + id +  ")");
+            return context;
+        }        
+    }
+
+    // set properties of the marker plugin
+    this.start = function(id){return markAccess(context,"marker-start",id);}
+    this.mid = function(id){return markAccess(context,"marker-mid",id);}
+    this.end = function(id){return markAccess(context,"marker-end",id);}
+
+    return context;
+}
+
+})
 //svg.js
 svg.extend(function(svgElem,util){
     svgElem.prototype.svg = svg;
@@ -1205,6 +1330,144 @@ svg.extend(function(svgElem,util){
     function asSwitchElem(){
         return this;
     }
+});
+svg.extend(function(svgElem,util){
+    svgElem.prototype.a = a;
+    a.asA = asA;
+
+    function a(href){
+        var e = new svgElem("a",this.dom);
+
+        asA.call(e);
+        e.href(href);
+
+        return e;
+    }
+
+    function asA(){
+        this.href = function(val){
+            if( val === undefined){
+                return this.attr("xlink:href");
+            }else{                
+                this.attr("xlink:href",val,svgElem.prototype.xlink_ns);
+                return this;
+            }
+        }
+
+        // @param show [string] - new | replace
+        this.show = function(val){
+            if( val === undefined){
+                return this.attr("xlink:show");
+            }else{                
+                this.attr("xlink:href",val, svgElem.prototype.xlink_ns);
+                return this;
+            }
+        }
+
+        // @param val [string] - _blank | _top
+        this.target = function(val){
+            return this.attr("target",val);
+        }
+
+        return this;
+    }
+
+});
+//marker.js
+svg.extend(function(svgElem,util){
+svgElem.prototype.marker = marker;
+marker.asMarker = asMarker;
+
+function marker(id,width,height){    
+    var e = new svgElem("marker",this.dom);
+
+    e.attr({
+        id: id,
+        "markerWidth":width,
+        "markerHeight":height
+    });
+
+    asMarker.call(e);
+    return e;
+}
+
+function asMarker(){
+    // add properties to the created marker Object
+    var props = [
+        {desired:"id"},        
+
+        // where should the marker be drawn from
+        // this is realtive to the point in whcih it is assigned
+        // default is 0,0
+        {desired:"x",real:"refX",isNum:true},
+        {desired:"y",real:"refY",isNum:true},
+
+        // how big is the canvas for this marker
+        {desired:"width" ,real:"markerWidth",isNum:true},
+        {desired:"height",real:"markerHeight",isNum:true},
+
+        // strokeWidth | userSpaceOnUse
+        {desired:"units",real:"markerUnits"},
+
+        // auto |  number
+        {desired:"orient",isNum:true}
+    ];
+    this.attr.DirectAccessDiffName(this,props);
+
+    // @param val [boolean] - turn on using userSpace or use the default strokeWidth
+    this.useUserSpace = function(val){
+        if( val === undefined){
+            var rs = this.attr("markerUnits");
+            if( rs !== null && rs !== undefined){
+                return (rs === "userSpaceOnUse");
+            }else{
+                return false;
+            }
+        }else{
+            if(!!val){
+                this.attr("markerUnits","userSpaceOnUse");
+            }
+            return this;
+        }
+    }
+
+    // the reference staring point for all the shaped within the marker
+    this.ref = function(x,y){
+        if( x === undefined){
+            return {
+                x: util.toNum(this.attr("refX")),
+                y: util.toNum(this.attr("refY"))
+            };
+        }else{
+            this.attr({
+                "refX":x,
+                "refY":y
+            });
+            return this;
+        }
+    }
+
+    // receive a rect specifying the viewport units for the element.
+    this.viewBox = function(x,y,w,h){
+        if( x === undefined){
+            var rs = this.attr("viewBox");
+            if( rs === null){return null;}
+            
+            rs = rs.split(" ");
+            return {
+                x : parseFloat(rs[0]),
+                y : parseFloat(rs[1]),
+                w : parseFloat(rs[2]),
+                h : parseFloat(rs[3])
+            }                
+        }else{
+            this.attr('viewBox',[x,y,w,h].join(" "));
+        }            
+    }
+
+    return this;
+}
+
 });
 //rect.js
 svg.extend(function(svgElem,util){
@@ -1498,6 +1761,7 @@ svg.extend(function(svgElem,util){
 
 
     function arrayOrString(p){
+        if( p === undefined || p === null){return null;}
         var points = p;
         var points_string = "";
 
@@ -1530,9 +1794,6 @@ svg.extend(function(svgElem,util){
     svgElem.prototype.path = path;
     path.asPath = asPath;
     
-
-
-
     // relative(lower-case),absolute(upper-case)
     // Move                         (M x y)
     // Line To                      (L x y)
@@ -1912,41 +2173,99 @@ svg.extend(function(svgElem,util){
         var e = new svgElem("text",this.dom);
 
         // set the position of the text node
-        e.attr({x:x,y:y});
-
-        // set the text of the text node
+        if( x !== undefined && y !== undefined){
+            e.attr({x:x,y:y});
+        }
+        
+        // set the text of the text node        
+        if(textString === undefined){textString = "";}
         e._text_textNode = svgElem.prototype.createTextNode(textString);
         e.dom.appendChild(e._text_textNode);
-
+        
         return asText.call(e);
     }
 
-    function setText(context,val){
-        if( context.dom.contains(context._text_textNode)){
+    // @param context [object] - the reference svgElem we should use when setting the text
+    // @param t [stirng] - the text value we should use when setting the textContext
+    function setText(context,val){        
+        if( val === undefined){val = "";}
+
+        if( context.dom.contains(context._text_textNode)){            
             context._text_textNode.nodeValue = val;
         }else{
-            context._text_textNode = svgElem.prototype.createTextNode(val);
-            context.dom.appendChild(context.text_textNode);
+
+            // serach for an available textNode to use our text node???
+            var children = context.dom.childNodes;
+            var n = children.length;
+            var foundFlag = false;
+            for(var i = 0;i < n; ++i){
+                if( children[i].nodeName === "#text"){
+                    context._text_textNode = children[i];
+                    foundFlag = true;                    
+                    break;
+                }
+            }
+
+            if( foundFlag === false){                
+                context._text_textNode = svgElem.prototype.createTextNode(val);
+            }
+
+            context.dom.appendChild(context._text_textNode);
         }
     }
-    function getText(context){
-        if(context.dom.contains(context._text_textNode)){
-            return context._text_textNode.nodeValue;
+
+    function getTextInternal(dom,recurse){        
+        if( dom.hasChildNodes() === false){
+            if( dom.nodeName === "#text"){
+                return dom.nodeValue;
+            }else{
+                return "";
+            }            
+        }
+
+        var s = "";
+        var children = dom.childNodes;
+        var n = children.length;
+        for( var i = 0;i < n; ++i){            
+            if(recurse){
+                s += getTextInternal(children[i],recurse);
+            }else{
+                if( children[i].nodeName === "#text"){
+                    s += children[i].nodeValue;
+                }
+            }
+        }
+        return s;
+    }
+
+    function getText(context,recurse){                
+        if(recurse){
+            return getTextInternal(context.dom,true);
         }else{
-            return "";
+            if(context.dom.contains(context._text_textNode)){
+                return context._text_textNode.nodeValue;
+            }else{
+                return "";
+            }
         }
     }
     
     function asText(){
-        this.text = function(val){
-            if( val === undefined){
-                return getText(this);
+        this.text = function(val){            
+            if( val === undefined || util.is(val,"boolean")){
+                return getText(this,val);
             }else{
                 setText(this,val);
                 return this;
             }
         }
 
+        this.x = function(val){
+            return util.toNum(this.attr("x",val));
+        }
+        this.y = function(val){
+            return util.toNum(this.attr("y",val));
+        }
 
         var props = [
             {desired:"anchor",real:"text-anchor"},
@@ -1961,29 +2280,175 @@ svg.extend(function(svgElem,util){
             {desired:"glyph_orientation_vertical",real:"glyph-orientation-vertical",isNum:true},
             {desired:"direction",real:"direction"},
         ];
-        for(var i = 0 ;i < props.length;++i){
-            this[props[i].desired] = (function(context,real,isNum){
-                if(isNum){
-                    return function(val){
-                        if( val === undefined){
-                            return util.isNum(context.attr(real));
-                        }else{
-                            context.attr(real,val);
-                            return context;
-                        }
-                    }
-                }else{
-                    return function(val){                        
-                        return context.attr(real,val);
-                    }
-                }                
-            }(this,props[i].real,props[i].isNum));
-        }
+        this.attr.DirectAccessDiffName(this,props);        
 
         return this;
     }
 
 });
+// tspan.js tref.js, textPath.js
+svg.extend(function(svgElem,util){
+    svgElem.prototype.tspan = tspan;
+    svgElem.prototype.tref = tref;
+    svgElem.prototype.textPath = textPath;
+
+    tspan.asTspan = asTspan;
+    tref.asTref = asTref;
+    textPath.asTextPath = asTextPath;
+
+    // ---------------------------
+    // tspan
+    // ---------------------------
+    function tspan(text,dx,dy){
+        var e = new svgElem("tspan",this.dom);
+
+        asTspan.call(e);
+        if(text !== undefined){e.text(text);}
+        if(dx !== undefined){e.dx(dx);}
+        if(dx !== undefined){e.dy(dy);}
+        return e;
+    }
+
+    function asTspan(){
+        asTextExtension.call(this);
+        return this;
+    }
+    
+    // -----------------------
+    // tref
+    // -----------------------
+    function tref(href,dx,dy){
+        var e = new svgElem("tref",this.dom);
+
+        asTref.call(e);
+        if(href !== undefined){e.href(href);}
+        if(dx !== undefined){e.dx(dx);}
+        if(dy !== undefined){e.dy(dy);}        
+
+        return e;
+    }
+
+
+    // TODO: currently not working..
+    function asTref(){
+        asTextExtension.call(this);
+
+        this.href = function(val){
+            if( val === undefined){
+                return this.attr("xlink:href");
+            }else{
+                if(val.charAt(0)!=="#"){
+                    val = "#"+val;
+                }
+
+                this.attr("xlink:href",val,svgElem.prototype.xlink_ns);
+                return this;
+            }
+        }
+
+        return this;
+    }
+
+
+    // -----------------------
+    // textPath 
+    // -----------------------    
+
+    // @param href [string] - the id of the target path we want to use in the textPath
+    // @param t [string] - the text that we want to follow the path
+    function textPath(href,t){
+        var e = new svgElem("textPath",this.dom);
+
+        asTextPath.call(e);
+        e.href(href);
+        if(t !== undefined){e.text(t);}
+
+        return e;
+    }
+
+    // TODO extend the textElement to allow them to create paths out of the given text.    
+
+    function asTextPath(){
+        asTextExtension.call(this);        
+
+        this.href = function(val){
+            if( val === undefined){
+                return this.attr("xlink:href");
+            }else{
+                if(val.charAt(0)!=="#"){
+                    val = "#"+val;
+                }
+
+                this.attr("xlink:href",val,svgElem.prototype.xlink_ns);
+                return this;
+            }
+        }
+
+        return this;
+    }
+
+    function asTextExtension(){
+        // HACKY. we need a ref to the asText mixin
+        svgElem.prototype.text.asText.call(this);
+
+        var props = ["dx","dy"];
+        // getter
+        // @return [array] -  an array of points defining the the dx or dy
+        // setter
+        // @param val [array,string] - set the offset using an array of numbers or a string
+        for (var i =0; i < props.length;++i){
+            // crate a closure to hold the context and key for
+            // the property we want to handle
+            this[props[i]] = (function(context,key){
+
+                return function(val){
+                    if( val === undefined){
+                        // getter
+                        var rs = context.attr(key);
+                        rs = rs.split(util.regex.split_seperator).map(function(v,k,arr){
+                            return util.toNum(v);
+                        });
+                        return rs;
+                    }else{
+                        // setter
+                        if( util.is(val,"array")){
+                            context.attr(key,val.join(" "));
+                        }else if( util.is(val,"string") || util.is(val,"number")){
+                            context.attr(key,val);
+                        }
+                        return context;
+                    }                    
+                }
+
+            }(this,props[i]));
+        }
+
+        
+        (function(context){
+            context.baseline = function(){}
+
+            // @param val = auto | baseline | sup | sub | <percentage> | <length> | inherit
+            context.baseline.shift = function(val){
+                return context.attr("baseline-shift",val);
+            }
+
+            // @param val = none | baseline | before-edge | text-before-edge | middle | central | after-edge
+            //      text-after-edge | alphabetic | hanging | mathemtical | inherit
+            context.baseline.alignment = function(val){    
+                return context.attr("alignment-baseline",val);
+            }
+
+            // @param val = auto | use-script |no-change | reset-size | ideographic | alphabetic | hanging | mathematical 
+            //      central | middle | text-after-edge | text-before-edge | inherit
+            context.baseline.dominant = function(val){
+                return context.attr("dominant-baseline",val);            
+            }
+        }(this));
+
+        return this;
+    }
+});
+
     return svg;
 }));
 
