@@ -1,4 +1,4 @@
-svg.extend(function(svgElem,util){
+svg.extend(function(svgElem,util,modules){
     svgElem.prototype.use = use;
     use.asUse = asUse;
 
@@ -22,20 +22,15 @@ svg.extend(function(svgElem,util){
     }
 
     function asUse(){
-        this.attr.DirectAccess(this,["+x","+y","+width","+height"]);
+        var d = [
+            {desired:"x",isNum:true},
+            {desired:"y",isNum:true},
+            {desired:"width",isNum:true},
+            {desired:"height",isNum:true}
+        ];
+        this.attr.DirectAccess(this,d);
 
-        this.href = function(val){
-            if( val === undefined){
-                return this.attr("xlink:href");
-            }else{
-                if(val.charAt(0)!=="#"){
-                    val = "#"+val;
-                }
-
-                this.attr("xlink:href",val,svgElem.prototype.xlink_ns);
-                return this;
-            }
-        }
+        modules.common.asXlinkable.call(this);
 
         return this;
     }

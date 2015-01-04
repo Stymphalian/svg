@@ -179,4 +179,27 @@ util.clone = function(src){
     return mixin(r,src,util.clone);
 }
 
+ function convertToPercentString(d){
+    if( isPercentString(d) === false){
+        return d + "%";
+    }
+    return d;
+}
+ function convertFromPercentString(d){
+    if(isPercentString(d)){
+        return util.toNum(d.slice(0,-1));
+    }        
+    return util.toNum(d);
+}    
+ function isPercentString(d){
+    if(util.is(d,"string") === false){
+        return false;
+    }else{
+        return (d.charAt(-1) === "%");
+    }
+}
+util.convertToPercentString = convertToPercentString;
+util.convertFromPercentString = convertFromPercentString;
+util.isPercentString = isPercentString;
+
 });

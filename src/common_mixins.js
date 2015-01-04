@@ -46,4 +46,21 @@ common.asViewport = function(){
     return this;
 }
 
+common.asXlinkable = function(){
+   this.href = function(val){
+        if( val === undefined){
+            return this.attr("xlink:href");
+        }else{
+            if(val.charAt(0)!=="#"){
+                val = "#"+val;
+            }
+
+            this.attr("xlink:href",val,svgElem.prototype.xlink_ns);
+            return this;
+        }
+    }
+
+    return this;
+}
+
 });

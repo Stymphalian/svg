@@ -12,8 +12,18 @@ return {
 function asShape(context){
     if( context === undefined || context === null){return this;}
     
-    // setup direct access for each of these properties    
-    var d = ['+x','+y','+width','+height','+rx','+ry','+r','+cx','+cy'];
+    // setup direct access for each of these properties        
+    var d = [
+        {desired:"x",isNum:true},
+        {desired:"y",isNum:true},
+        {desired:"width",isNum:true},
+        {desired:"height",isNum:true},
+        {desired:"rx",isNum:true},
+        {desired:"ry",isNum:true},
+        {desired:"r",isNum:true},
+        {desired:"cx",isNum:true},
+        {desired:"cy",isNum:true}        
+    ]
     context.attr.DirectAccessNoFunction(this,d,context);
     
 

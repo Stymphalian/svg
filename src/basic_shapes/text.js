@@ -131,7 +131,7 @@ svg.extend(function(svgElem,util){
             {desired:"glyph_orientation_vertical",real:"glyph-orientation-vertical",isNum:true},
             {desired:"direction",real:"direction"},
         ];
-        this.attr.DirectAccessDiffName(this,props);        
+        this.attr.DirectAccess(this,props);        
 
         return this;
     }

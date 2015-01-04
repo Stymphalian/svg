@@ -40,9 +40,11 @@ require(["svg","testing"], function(svg,T){
         "switch_test",
         "a_test",
         "marker_test",
+        "linearGradient_test",
+        "radialGradient_test",
                     
         "shape_test",
-        "transform_test"
+        "transform_test",
     ];
 
     for(var i = 0 ;i < tests.length; ++i){

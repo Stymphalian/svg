@@ -37,7 +37,7 @@ function asMarker(){
         // auto |  number
         {desired:"orient",isNum:true}
     ];
-    this.attr.DirectAccessDiffName(this,props);
+    this.attr.DirectAccess(this,props);
 
     // @param val [boolean] - turn on using userSpace or use the default strokeWidth
     this.useUserSpace = function(val){

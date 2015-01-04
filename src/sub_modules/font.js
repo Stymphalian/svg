@@ -27,7 +27,7 @@ function asFont(context){
         {desired:"variant",real:"font-variant"},
         {desired:"weight",real:"font-weight"},
     ];
-    context.attr.DirectAccessNoFunctionDiffName(this,props,context);
+    context.attr.DirectAccessNoFunction(this,props,context);
     
     return this;
 }

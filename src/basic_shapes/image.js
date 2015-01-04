@@ -17,7 +17,13 @@ svg.extend(function(svgElem,util){
     }
 
     function asImage(){
-        this.attr.DirectAccess(this,["+x","+y","+width","+height"]);
+        var props = [
+            {desired:"x",isNum:true},
+            {desired:"y",isNum:true},
+            {desired:"width",isNum:true},
+            {desired:"height",isNum:true}
+        ]
+        this.attr.DirectAccess(this,props);
 
         this.href = function(val){
             if(val === undefined){

@@ -115,46 +115,7 @@ svg.extend(function(svgElem,util){
         return context;
     }
 
-    // do I want to use a DefineProperty such that the programmer
-    // can access the value without having to call a function?
-    // @param to [object] - the obbject in which to define the property on    
-    // @param d [array] - an array of strings specifying the attributes in which we
-    //      want direct access. If the string has a "+" as the first character of the property
-    //      this tells us that we want to do a 'toNum' coercion when we process the property
-    // @param context [object|function] - optional. A context in which we want to work with
-    //      in most cases, to will === context. If not context is given then we assume it
-    //      is the same as the 'to' context    
-    attr.DirectAccessNoFunction = function(to,d,context){
-        if(context === undefined){context = to;}
-
-        var n = d.length;
-        for( var i = 0;i < n ; ++i){            
-            (function(key){
-                // did the programmer tell us that she wanted
-                // some properties to be coercied into a number?
-                var toNumFlag = false;
-                if( key.charAt(0) === "+"){
-                    toNumFlag = true;
-                    key = key.substring(1);
-                }
-
-                // define the property on the 'to' object
-                attr._defineProperty(to,key,
-                    function(){
-                        if( toNumFlag){
-                            return util.toNum(context.attr(key));
-                        }else{
-                            return context.attr(key);
-                        }
-                    }, // getter
-                    function(val){ // setter
-                        context.attr(key,val);
-                        return context;
-                    });
-            }(d[i]));
-        }
-    }
-
+    
     // @param to [object] - the obbject in which to define the property on    
     // @param d [array] - an array of objects which have the following struture
     // {
@@ -165,16 +126,28 @@ svg.extend(function(svgElem,util){
     // @param context [object|function] - optional. A context in which we want to work with
     //      in most cases, to will === context. If not context is given then we assume it
     //      is the same as the 'to' context
-    attr.DirectAccessNoFunctionDiffName = function(to,d,context){
+    attr.DirectAccessNoFunction = function(to,d,context){
         if( context === undefined){context = to;}
         var n = d.length;
 
         for( var i = 0;i < n; ++i){
-            (function(desired,real,isNum){
+            var e = d[i];
+            if( util.is(e,"string")){
+                console.error("nofunction");
+                e = {
+                    desired: d[i],
+                    isNum : (d[i].charAt(0) === "+")
+                };
+            }
+
+            (function(desired,real,isNum,munger){
+                if(real === undefined){real = desired;}
                 if(isNum === undefined){isNum = false;}
+                if(munger === undefined){munger = function(val,isGet){return val;};}
 
                 attr._defineProperty(to,desired,
                     function(){ //getter
+                        var rs = munger(context.attr(real),true);
                         if( isNum){
                             return util.toNum(context.attr(real));
                         }else{
@@ -182,54 +155,16 @@ svg.extend(function(svgElem,util){
                         }
                     },
                     function(val){ // setter
-                        context.attr(real,val);
+                        var rs = munger(val,false);
+                        context.attr(real,rs);
                         return context;
                     }
                 );
 
-            }(d[i].desired,d[i].real,d[i].isNum));
+            }(d[i].desired,d[i].real,d[i].isNum,d[i].munger));
         }
     }
 
-    
-    // @param to [object] - the obbject in which to define the property on    
-    // @param d [array] - an array of strings specifying the attributes in which we
-    //      want direct access.
-    // @param context [object|function] - optional. A context in which we want to work with
-    //      in most cases, to will === context. If not context is given then we assume it
-    //      is the same as the 'to' context
-    attr.DirectAccess = function(to,d,context){
-        if( context === undefined){context = to;}
-
-        var n = d.length;
-        for(var i = 0; i <n; ++i){
-            
-            // did the programmer tell us that she wanted
-            // some properties to be coercied into a number?
-            var toNumFlag = false;
-            var k = d[i];
-            if( k.charAt(0) === "+"){
-                toNumFlag = true;
-                k = k.substring(1);
-            }
-
-            to[k] = (function(key,numFlag){
-                return function(val){
-                    if( val === undefined){
-                        if( numFlag){
-                            return util.toNum(context.attr(key));
-                        }else{
-                            return context.attr(key);
-                        }
-                        
-                    }else{
-                        context.attr(key,val);
-                        return context;
-                    }
-                }
-            }(k,toNumFlag));
-        }
-    }
 
     // @param to [object] - the obbject in which to define the property on    
     // @param d [array] - an array of objects which have the following struture
@@ -237,35 +172,60 @@ svg.extend(function(svgElem,util){
     //     desired: string, // the desired name to access from
     //     real : string,  // optional. if not provided then we assume the noraml desired.
     //     isNum : boolean // optional, used to denote if the attribute should be treated as a number
+    //     munger: // optional. function(val,isGet){} where val is value being get/set, 
+    //          and the isGet flag informs us which scenario
     // }
     // @param context [object|function] - optional. A context in which we want to work with
     //      in most cases, to will === context. If not context is given then we assume it
     //      is the same as the 'to' context
-    attr.DirectAccessDiffName = function(to,d,context){
+    attr.DirectAccess = function(to,d,context){
         if( context === undefined){context = to;}
         var n = d.length;
 
         for( var i = 0;i < n; ++i){
+
+            var e = d[i];
+            if( util.is(d[i],"string")){
+                console.error("direct access");
+                e = {
+                    desired: d[i],
+                    isNum: (d[i].charAt(0) === "+")
+                };
+            }
+
             // return a function closure which holds
             // the desired,real and isNum values
-            to[d[i].desired] = (function(desired,real,isNum){
+            to[e.desired] = (function(desired,real,isNum,munger){
                 if(isNum === undefined){isNum = false;}
-                if(real === undefined){real = desired;}
+                if(real === undefined){real = desired;}                
+                if(munger === undefined){munger = function(val,isGet){return val;};}
 
                 return function(val){
-                    if(val === undefined){
-                        if( isNum){
-                            return util.toNum(contex.attr(real));
+                    var rs = null;
+
+                    if(val === undefined){                                                
+
+                        // if a munger was supplied then we do some 
+                        // pre-processing of the return value before returning
+                        // it to the user
+                        rs = munger(context.attr(real),true);
+                        if(isNum){
+                            return util.toNum(rs);
                         }else{
-                            return contex.attr(real);
+                            return rs;
                         }
-                    }else{
-                        context.attr(real,val);
+
+                    }else{           
+
+                        // if a munger was supplied by the user,
+                        // then we apply the pre-processing before setting the attr.
+                        rs = munger(val,false);
+                        context.attr(real,rs);
                         return context;
                     }
                 };
 
-            }(d[i].desired,d[i].real,d[i].isNum));
+            }(e.desired,e.real,e.isNum,e.munger));
         }
     }
 

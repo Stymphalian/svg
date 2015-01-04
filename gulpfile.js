@@ -48,6 +48,7 @@ gulp.task("build",function(cb){
         "src/sub_modules/lex.js",
         "src/sub_modules/font.js",
         "src/sub_modules/mark.js",
+        
 
         // containers
         "src/containers/svg.js", // must be the first element defined
@@ -58,6 +59,8 @@ gulp.task("build",function(cb){
         "src/containers/switch.js",
         "src/containers/a.js",
         "src/containers/marker.js",
+        "src/containers/gradient.js",
+        "src/containers/stop.js",
 
         // basic shapes        
         "src/basic_shapes/rect.js",

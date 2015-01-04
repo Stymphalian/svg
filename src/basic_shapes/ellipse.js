@@ -12,7 +12,11 @@ svg.extend(function(svgElem,util){
     function asEllipse(){
         // the plus tells use that we want the rx and ry attributes to
         // be coerced into numbers
-        this.attr.DirectAccess(this,['+rx','+ry']);
+        var d = [
+            {desired:"rx",isNum:true},
+            {desired:"ry",isNum:true},
+        ];
+        this.attr.DirectAccess(this,d);
 
         this.center = function(x,y){
             if( x === undefined){

@@ -269,6 +269,29 @@ util.clone = function(src){
     return mixin(r,src,util.clone);
 }
 
+ function convertToPercentString(d){
+    if( isPercentString(d) === false){
+        return d + "%";
+    }
+    return d;
+}
+ function convertFromPercentString(d){
+    if(isPercentString(d)){
+        return util.toNum(d.slice(0,-1));
+    }        
+    return util.toNum(d);
+}    
+ function isPercentString(d){
+    if(util.is(d,"string") === false){
+        return false;
+    }else{
+        return (d.charAt(-1) === "%");
+    }
+}
+util.convertToPercentString = convertToPercentString;
+util.convertFromPercentString = convertFromPercentString;
+util.isPercentString = isPercentString;
+
 });
 
 // svgElem.js
@@ -429,20 +452,37 @@ common.asViewport = function(){
     return this;
 }
 
+common.asXlinkable = function(){
+   this.href = function(val){
+        if( val === undefined){
+            return this.attr("xlink:href");
+        }else{
+            if(val.charAt(0)!=="#"){
+                val = "#"+val;
+            }
+
+            this.attr("xlink:href",val,svgElem.prototype.xlink_ns);
+            return this;
+        }
+    }
+
+    return this;
+}
+
 });
-//color.js
+//colorUtil.js
 svg.extend(function(svgElem,util){
-    svgElem.prototype.color = new color();
+    svgElem.prototype.colorUtil = new colorUtil();
 
     // @return [array,string] - 
-    function color(){}
+    function colorUtil(){}
 
     function clamp(n){
         if( n < 0){return 0;}
         if( n > 255){return 255;}        
         return n;
     }
-    color.prototype.rgb2hex = function(r,g,b){
+    colorUtil.prototype.rgb2hex = function(r,g,b){
         var h = ["#",0,0,0];
         h[1] = Number.prototype.toString.call(clamp(r),16);
         h[2] = Number.prototype.toString.call(clamp(g),16);
@@ -450,7 +490,7 @@ svg.extend(function(svgElem,util){
         return Array.prototype.join.call(h,"");
     }
 
-    color.prototype.hex2rgb = function(h){
+    colorUtil.prototype.hex2rgb = function(h){
         h = (h.charAt(0)==='#') ? h.substring(1,7) : h;
         return {
             r : parseInt(h.substring(0,2),16),
@@ -459,7 +499,7 @@ svg.extend(function(svgElem,util){
         };        
     }
 
-    color.prototype.asHex = function(r,g,b){
+    colorUtil.prototype.asHex = function(r,g,b){
         if( r === undefined){return null;}
 
         if( util.is(r,"string") ){
@@ -473,7 +513,7 @@ svg.extend(function(svgElem,util){
             if( g === undefined){return;}
             if( b === undefined){return;}
             // convert rgb to a hex value
-            return color.prototype.rgb2hex(r,g,b);    
+            return colorUtil.prototype.rgb2hex(r,g,b);    
         }
     }
 
@@ -595,46 +635,7 @@ svg.extend(function(svgElem,util){
         return context;
     }
 
-    // do I want to use a DefineProperty such that the programmer
-    // can access the value without having to call a function?
-    // @param to [object] - the obbject in which to define the property on    
-    // @param d [array] - an array of strings specifying the attributes in which we
-    //      want direct access. If the string has a "+" as the first character of the property
-    //      this tells us that we want to do a 'toNum' coercion when we process the property
-    // @param context [object|function] - optional. A context in which we want to work with
-    //      in most cases, to will === context. If not context is given then we assume it
-    //      is the same as the 'to' context    
-    attr.DirectAccessNoFunction = function(to,d,context){
-        if(context === undefined){context = to;}
-
-        var n = d.length;
-        for( var i = 0;i < n ; ++i){            
-            (function(key){
-                // did the programmer tell us that she wanted
-                // some properties to be coercied into a number?
-                var toNumFlag = false;
-                if( key.charAt(0) === "+"){
-                    toNumFlag = true;
-                    key = key.substring(1);
-                }
-
-                // define the property on the 'to' object
-                attr._defineProperty(to,key,
-                    function(){
-                        if( toNumFlag){
-                            return util.toNum(context.attr(key));
-                        }else{
-                            return context.attr(key);
-                        }
-                    }, // getter
-                    function(val){ // setter
-                        context.attr(key,val);
-                        return context;
-                    });
-            }(d[i]));
-        }
-    }
-
+    
     // @param to [object] - the obbject in which to define the property on    
     // @param d [array] - an array of objects which have the following struture
     // {
@@ -645,16 +646,28 @@ svg.extend(function(svgElem,util){
     // @param context [object|function] - optional. A context in which we want to work with
     //      in most cases, to will === context. If not context is given then we assume it
     //      is the same as the 'to' context
-    attr.DirectAccessNoFunctionDiffName = function(to,d,context){
+    attr.DirectAccessNoFunction = function(to,d,context){
         if( context === undefined){context = to;}
         var n = d.length;
 
         for( var i = 0;i < n; ++i){
-            (function(desired,real,isNum){
+            var e = d[i];
+            if( util.is(e,"string")){
+                console.error("nofunction");
+                e = {
+                    desired: d[i],
+                    isNum : (d[i].charAt(0) === "+")
+                };
+            }
+
+            (function(desired,real,isNum,munger){
+                if(real === undefined){real = desired;}
                 if(isNum === undefined){isNum = false;}
+                if(munger === undefined){munger = function(val,isGet){return val;};}
 
                 attr._defineProperty(to,desired,
                     function(){ //getter
+                        var rs = munger(context.attr(real),true);
                         if( isNum){
                             return util.toNum(context.attr(real));
                         }else{
@@ -662,54 +675,16 @@ svg.extend(function(svgElem,util){
                         }
                     },
                     function(val){ // setter
-                        context.attr(real,val);
+                        var rs = munger(val,false);
+                        context.attr(real,rs);
                         return context;
                     }
                 );
 
-            }(d[i].desired,d[i].real,d[i].isNum));
+            }(d[i].desired,d[i].real,d[i].isNum,d[i].munger));
         }
     }
 
-    
-    // @param to [object] - the obbject in which to define the property on    
-    // @param d [array] - an array of strings specifying the attributes in which we
-    //      want direct access.
-    // @param context [object|function] - optional. A context in which we want to work with
-    //      in most cases, to will === context. If not context is given then we assume it
-    //      is the same as the 'to' context
-    attr.DirectAccess = function(to,d,context){
-        if( context === undefined){context = to;}
-
-        var n = d.length;
-        for(var i = 0; i <n; ++i){
-            
-            // did the programmer tell us that she wanted
-            // some properties to be coercied into a number?
-            var toNumFlag = false;
-            var k = d[i];
-            if( k.charAt(0) === "+"){
-                toNumFlag = true;
-                k = k.substring(1);
-            }
-
-            to[k] = (function(key,numFlag){
-                return function(val){
-                    if( val === undefined){
-                        if( numFlag){
-                            return util.toNum(context.attr(key));
-                        }else{
-                            return context.attr(key);
-                        }
-                        
-                    }else{
-                        context.attr(key,val);
-                        return context;
-                    }
-                }
-            }(k,toNumFlag));
-        }
-    }
 
     // @param to [object] - the obbject in which to define the property on    
     // @param d [array] - an array of objects which have the following struture
@@ -717,35 +692,60 @@ svg.extend(function(svgElem,util){
     //     desired: string, // the desired name to access from
     //     real : string,  // optional. if not provided then we assume the noraml desired.
     //     isNum : boolean // optional, used to denote if the attribute should be treated as a number
+    //     munger: // optional. function(val,isGet){} where val is value being get/set, 
+    //          and the isGet flag informs us which scenario
     // }
     // @param context [object|function] - optional. A context in which we want to work with
     //      in most cases, to will === context. If not context is given then we assume it
     //      is the same as the 'to' context
-    attr.DirectAccessDiffName = function(to,d,context){
+    attr.DirectAccess = function(to,d,context){
         if( context === undefined){context = to;}
         var n = d.length;
 
         for( var i = 0;i < n; ++i){
+
+            var e = d[i];
+            if( util.is(d[i],"string")){
+                console.error("direct access");
+                e = {
+                    desired: d[i],
+                    isNum: (d[i].charAt(0) === "+")
+                };
+            }
+
             // return a function closure which holds
             // the desired,real and isNum values
-            to[d[i].desired] = (function(desired,real,isNum){
+            to[e.desired] = (function(desired,real,isNum,munger){
                 if(isNum === undefined){isNum = false;}
-                if(real === undefined){real = desired;}
+                if(real === undefined){real = desired;}                
+                if(munger === undefined){munger = function(val,isGet){return val;};}
 
                 return function(val){
-                    if(val === undefined){
-                        if( isNum){
-                            return util.toNum(contex.attr(real));
+                    var rs = null;
+
+                    if(val === undefined){                                                
+
+                        // if a munger was supplied then we do some 
+                        // pre-processing of the return value before returning
+                        // it to the user
+                        rs = munger(context.attr(real),true);
+                        if(isNum){
+                            return util.toNum(rs);
                         }else{
-                            return contex.attr(real);
+                            return rs;
                         }
-                    }else{
-                        context.attr(real,val);
+
+                    }else{           
+
+                        // if a munger was supplied by the user,
+                        // then we apply the pre-processing before setting the attr.
+                        rs = munger(val,false);
+                        context.attr(real,rs);
                         return context;
                     }
                 };
 
-            }(d[i].desired,d[i].real,d[i].isNum));
+            }(e.desired,e.real,e.isNum,e.munger));
         }
     }
 
@@ -764,8 +764,18 @@ return {
 function asShape(context){
     if( context === undefined || context === null){return this;}
     
-    // setup direct access for each of these properties    
-    var d = ['+x','+y','+width','+height','+rx','+ry','+r','+cx','+cy'];
+    // setup direct access for each of these properties        
+    var d = [
+        {desired:"x",isNum:true},
+        {desired:"y",isNum:true},
+        {desired:"width",isNum:true},
+        {desired:"height",isNum:true},
+        {desired:"rx",isNum:true},
+        {desired:"ry",isNum:true},
+        {desired:"r",isNum:true},
+        {desired:"cx",isNum:true},
+        {desired:"cy",isNum:true}        
+    ]
     context.attr.DirectAccessNoFunction(this,d,context);
     
 
@@ -1049,6 +1059,10 @@ function asTransform(context){
         return context;
     }
 
+    // a c e 
+    // b d f 
+    // 0 0 1 
+    // provide values in this format [a,b,c,d,e,f]
     this.matrix = function(val){        
         if(util.is(val,"string")){
             val = val.split(util.regex.split_seperate,function(v,k,arr){
@@ -1069,6 +1083,9 @@ function asTransform(context){
         save(context);
         return context;
     }
+    this.matrix.identity = function(){
+        return [1,0,0,1,0,0];
+    }
 
     this.fromStringToObject = fromStringToObject;
 
@@ -1079,8 +1096,7 @@ function asTransform(context){
         
         context._transform_values = rs;
         return rs;
-    }
-
+    }    
 }
 
 function applyInterface(e){
@@ -1328,7 +1344,7 @@ function asFont(context){
         {desired:"variant",real:"font-variant"},
         {desired:"weight",real:"font-weight"},
     ];
-    context.attr.DirectAccessNoFunctionDiffName(this,props,context);
+    context.attr.DirectAccessNoFunction(this,props,context);
     
     return this;
 }
@@ -1632,7 +1648,7 @@ function asMarker(){
         // auto |  number
         {desired:"orient",isNum:true}
     ];
-    this.attr.DirectAccessDiffName(this,props);
+    this.attr.DirectAccess(this,props);
 
     // @param val [boolean] - turn on using userSpace or use the default strokeWidth
     this.useUserSpace = function(val){
@@ -1673,6 +1689,234 @@ function asMarker(){
 }
 
 });
+//gradient.js
+svg.extend(function(svgElem,util,modules){
+    svgElem.prototype.linearGradient = linearGradient;
+    linearGradient.asLinearGradient = asLinearGradient;
+    svgElem.prototype.radialGradient = radialGradient;
+    radialGradient.asLinearGradient = asRadialGradient;
+
+
+    // ----------------------
+    // linearGradient
+    // ----------------------
+    function linearGradient(id,x1,y1,x2,y2){
+        var e = new svgElem("linearGradient",this.dom);
+        asLinearGradient.call(e);
+
+        e.attr({
+            id: id,
+            x1:util.convertToPercentString(x1),
+            y1:util.convertToPercentString(y1),
+            x2:util.convertToPercentString(x2),
+            y2:util.convertToPercentString(y2)
+        });
+
+        return e;
+    }
+
+    function asGradientCommon(){
+        this.start = function(x,y){
+            if( x === undefined){
+                x = util.convertFromPercentString(this.attr("x1"));
+                y = util.convertFromPercentString(this.attr("y1"));
+                return {                    
+                    x: util.toNum(x),
+                    y: util.toNum(y)
+                };
+            }else{
+                this.attr({
+                    x1:util.convertToPercentString(x),
+                    y1:util.convertToPercentString(y)
+                });
+                return this;
+            }
+        }
+
+        this.end = function(x,y){
+            if( x === undefined){
+                x = util.convertFromPercentString(this.attr("x2"));
+                y = util.convertFromPercentString(this.attr("y2"));
+                return {                    
+                    x: util.toNum(x),
+                    y: util.toNum(y)
+                };
+            }else{
+                this.attr({
+                    x2:util.convertToPercentString(x),
+                    y2:util.convertToPercentString(y)
+                });
+                return this;
+            }
+        }
+
+        function getAllStopElems(){
+            var rs = [];
+            var children = this.dom.childNodes;
+            var n = children.length;
+            for(var i = 0;i < n; ++i ){
+                if(children[i].nodeName ==="stop"){
+                    rs.push(children[i]);
+                }
+            }            
+            return rs;
+        }
+
+
+        // @param stops [array] - an array of dom <stop> dom nodes
+        // @return rs - return an array of object
+        // [{offset: x, color: y , opacity: z},...]
+        function makeArrayCopyofStops(stops){
+            var attr = svgElem.attr.attrInternal;
+        
+            var rs = [];
+            var i = 0;
+            var n = stops.length;
+            for( i = 0;i < n; ++i){
+                var poj = {
+
+                }
+                rs.push({
+                    "offset": attr(stops[i],"offset"),
+                    "stop-color" : attr(stops[i],"stop-color"),
+                    "stop-opacity" : attr(stops[i],"stop-opacity"),
+                });
+            }
+
+            return rs;
+        }
+
+        function setStops(context,stopsArray){
+            // helper methods
+            var attr = svgElem.attr.attrInternal;
+            var stopsPool = getAllStopElems();
+
+            // create more stops if not enough
+            while(stopsPool.length < stopsArray.length){
+                var s = context.stop(0,0,0);
+                stopsPool.push(s.dom);
+            }
+
+            var numUsed = 0;
+            var n = stopsPool.length;
+            for( var i = 0; i < n; ++i){
+                attr(stopsPool[i],{
+                    "offset": util.convertToPercentString(stopsArray[i].offset),
+                    "stop-color": stopsArray[i].color,
+                    "stop-opacity": stopsArray[i].opacity
+                });
+
+                numUsed += 1;
+            }
+
+            if( numUsed < stopsPool.length){
+                // delete all the extra nodes
+                var parent = stopsPool[numUsed];
+                var j = numUsed;
+                n = stopsPool.length;            
+                for(var j = numUsed; j < stopsPool.length; ++j){
+                    parent.removeChild(stopsPool[j])
+                }
+            }
+
+            return context;
+        }
+
+
+        return this;
+    }
+
+    
+
+    function asLinearGradient(){        
+        asGradientCommon.call(this);
+
+        var props = [
+            {desired:"id"},
+
+            // amound of space into the shape in which the gradient should begin at.
+            // please use a percentage (i.e "50%")
+            {desired:"x1",isNum:true,munger:percentMunger},
+            {desired:"y1",isNum:true,munger:percentMunger},
+
+            // amount of space into the shape in whcih the gradient should end
+            // please use a percentage (i.e "50%")
+            {desired:"x2",isNum:true,munger:percentMunger},
+            {desired:"y2",isNum:true,munger:percentMunger},
+
+            // pad | repeat | reflect
+            {desired:"spreadMethod"},
+
+            // userSpaceOnUse | objectBoundingBox
+            {desired:"units",real:"gradientUnits"},
+            {desired:"gradientUnits"},
+        ];
+
+        this.attr.DirectAccess(this,props);
+                
+        // get href property
+        modules.common.asXlinkable.call(this);
+    }
+
+
+    // ----------------------
+    // radialGradient
+    // ----------------------
+    function radialGradient(){
+
+    }
+    function asRadialGradient(){
+
+    }
+
+
+    function percentMunger(val,isGet){
+        if(isGet){
+            return util.convertFromPercentString(val);
+        }else{
+            return util.convertToPercentString(val);
+        }            
+    }
+
+});
+svg.extend(function(svgElem,util,modules){
+    svgElem.prototype.stop = stop;
+    stop.asStop = asStop;
+
+    function stop(offset,stop_color){
+        var e = new svgElem("stop",this.dom);
+
+        e.attr({
+            "stop-color":stop_color,
+            "offset" : util.convertToPercentString(offset),
+            "stop-opacity" : 1.0
+        });
+        asStop.call(e);
+
+        return e;
+    }
+
+    function percentMunger(val,isGet){
+        if(isGet){
+            return util.convertFromPercentString(val);
+        }else{
+            return util.convertToPercentString(val);
+        }            
+    }
+
+    function asStop(){
+        var props =[
+            {desired:"color",real:"stop-color"},
+            {desired:"opacity",real:"stop-opacity",isNum:true},
+
+            // amount of space offset from which we begin the stop
+            {desired:"offset",isNum:true, munger:percentMunger},
+        ];
+        this.attr.DirectAccess(this,props);
+    }
+
+});
+
 //rect.js
 svg.extend(function(svgElem,util){
     svgElem.prototype.rect = rect;
@@ -1752,7 +1996,11 @@ svg.extend(function(svgElem,util){
     function asEllipse(){
         // the plus tells use that we want the rx and ry attributes to
         // be coerced into numbers
-        this.attr.DirectAccess(this,['+rx','+ry']);
+        var d = [
+            {desired:"rx",isNum:true},
+            {desired:"ry",isNum:true},
+        ];
+        this.attr.DirectAccess(this,d);
 
         this.center = function(x,y){
             if( x === undefined){
@@ -2263,7 +2511,7 @@ svg.extend(function(svgElem,util){
         }
     }
 });
-svg.extend(function(svgElem,util){
+svg.extend(function(svgElem,util,modules){
     svgElem.prototype.use = use;
     use.asUse = asUse;
 
@@ -2287,20 +2535,15 @@ svg.extend(function(svgElem,util){
     }
 
     function asUse(){
-        this.attr.DirectAccess(this,["+x","+y","+width","+height"]);
+        var d = [
+            {desired:"x",isNum:true},
+            {desired:"y",isNum:true},
+            {desired:"width",isNum:true},
+            {desired:"height",isNum:true}
+        ];
+        this.attr.DirectAccess(this,d);
 
-        this.href = function(val){
-            if( val === undefined){
-                return this.attr("xlink:href");
-            }else{
-                if(val.charAt(0)!=="#"){
-                    val = "#"+val;
-                }
-
-                this.attr("xlink:href",val,svgElem.prototype.xlink_ns);
-                return this;
-            }
-        }
+        modules.common.asXlinkable.call(this);
 
         return this;
     }
@@ -2325,7 +2568,13 @@ svg.extend(function(svgElem,util){
     }
 
     function asImage(){
-        this.attr.DirectAccess(this,["+x","+y","+width","+height"]);
+        var props = [
+            {desired:"x",isNum:true},
+            {desired:"y",isNum:true},
+            {desired:"width",isNum:true},
+            {desired:"height",isNum:true}
+        ]
+        this.attr.DirectAccess(this,props);
 
         this.href = function(val){
             if(val === undefined){
@@ -2484,14 +2733,14 @@ svg.extend(function(svgElem,util){
             {desired:"glyph_orientation_vertical",real:"glyph-orientation-vertical",isNum:true},
             {desired:"direction",real:"direction"},
         ];
-        this.attr.DirectAccessDiffName(this,props);        
+        this.attr.DirectAccess(this,props);        
 
         return this;
     }
 
 });
 // tspan.js tref.js, textPath.js
-svg.extend(function(svgElem,util){
+svg.extend(function(svgElem,util,modules){
     svgElem.prototype.tspan = tspan;
     svgElem.prototype.tref = tref;
     svgElem.prototype.textPath = textPath;
@@ -2537,18 +2786,7 @@ svg.extend(function(svgElem,util){
     function asTref(){
         asTextExtension.call(this);
 
-        this.href = function(val){
-            if( val === undefined){
-                return this.attr("xlink:href");
-            }else{
-                if(val.charAt(0)!=="#"){
-                    val = "#"+val;
-                }
-
-                this.attr("xlink:href",val,svgElem.prototype.xlink_ns);
-                return this;
-            }
-        }
+        modules.common.asXlinkable.call(this);
 
         return this;
     }
@@ -2575,18 +2813,7 @@ svg.extend(function(svgElem,util){
     function asTextPath(){
         asTextExtension.call(this);        
 
-        this.href = function(val){
-            if( val === undefined){
-                return this.attr("xlink:href");
-            }else{
-                if(val.charAt(0)!=="#"){
-                    val = "#"+val;
-                }
-
-                this.attr("xlink:href",val,svgElem.prototype.xlink_ns);
-                return this;
-            }
-        }
+        modules.common.asXlinkable.call(this);
 
         return this;
     }
