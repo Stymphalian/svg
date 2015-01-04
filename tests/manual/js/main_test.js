@@ -42,7 +42,7 @@ require(["svg","testing"], function(svg,T){
         "marker_test",
                     
         "shape_test",
-        // "transform_test"
+        "transform_test"
     ];
 
     for(var i = 0 ;i < tests.length; ++i){

@@ -48,7 +48,7 @@ svg.extend(function(svgElem,util){
             };            
 
             // parse through the values and add them to the values array       
-            values.replace(util.regex.pathValues,function(_,num){
+            values.replace(util.regex.values,function(_,num){
                 num && poj.values.push(+num);
             });
 

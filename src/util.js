@@ -1,3 +1,4 @@
+
 //util.js
 svg.module(function(lib){
 // ---------------------
@@ -18,8 +19,10 @@ util.regex = {
     // pathcommand,pathValue and number regex stolen from snap.svg
     // https://github.com/adobe-webplatform/Snap.svg/blob/master/src/svg.js
     pathCommand: /([a-z])[,\s]*((-?\d+\.?\d*(?:e[+-]?\d+)?\s*,?\s*)*)/gi,     
-    pathValues: /(-?\d+\.?\d*(?:e[+-]?\d+)?)\s*,?\s*/gi,
-    number: /(-?\d+\.?\d*(?:e[+-]?\d+)?)/,
+    transformCommand: /([a-zXY]*)\s*\(\s*((-?\d+\.?\d*(?:e[+-]?\d+)?\s*,?\s*)*)\)/gi,
+    values: /(-?\d+\.?\d*(?:e[+-]?\d+)?)\s*,?\s*/gi,
+    number: /(-?\d+\.?\d*(?:e[+-]?\d+)?)/
+    
 };
 
 // e.g
@@ -51,6 +54,14 @@ util.toNum = function(v){
     var rs = +v;
     if( isNaN(+v)){return v;}
     return rs;
+}
+
+util.toRad = function(deg){
+    return deg*Math.PI/180;
+}
+
+util.toDeg = function(rad){
+    return rad*180/Math.PI;
 }
 
 // to -- the object to mixin in to
