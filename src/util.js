@@ -179,22 +179,18 @@ util.clone = function(src){
 }
 
  function convertToPercentString(d){
+    if( d=== null ){return null;}
+    
     if( isPercentString(d) === false){
-        if( d=== null ||  d=== undefined || d === ""){
-            return "";
-        }else{
             return d + "%";
-        }        
     }
     return d;
 }
  function convertFromPercentString(d){
-    if(isPercentString(d)){
-        if( d=== null ||  d=== undefined || d === ""){
-            return "";
-        }else{
-            return util.toNum(d.slice(0,-1));
-        }        
+    if(d === null){return null;}
+
+    if(isPercentString(d)){        
+        return util.toNum(d.slice(0,-1));        
     }        
     return util.toNum(d);
 }    

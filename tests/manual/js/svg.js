@@ -269,22 +269,18 @@ util.clone = function(src){
 }
 
  function convertToPercentString(d){
+    if( d=== null ){return null;}
+    
     if( isPercentString(d) === false){
-        if( d=== null ||  d=== undefined || d === ""){
-            return "";
-        }else{
             return d + "%";
-        }        
     }
     return d;
 }
  function convertFromPercentString(d){
-    if(isPercentString(d)){
-        if( d=== null ||  d=== undefined || d === ""){
-            return "";
-        }else{
-            return util.toNum(d.slice(0,-1));
-        }        
+    if(d === null){return null;}
+
+    if(isPercentString(d)){        
+        return util.toNum(d.slice(0,-1));        
     }        
     return util.toNum(d);
 }    
@@ -575,12 +571,27 @@ svg.extend(function(svgElem,util){
         return this;    
     }
 
+    // @param key : the attribute to set
+    // @param value : the value for the attribute to take.
+    // @param ns : namespace for setting the attribute
+    function rmAttr(dom,key,ns){
+        if( key === undefined){return;}
+        if( ns === undefined || ns === null){
+            dom.removeAttribute(key);
+        }else{
+            dom.removeAttributeNS(ns,key);
+        }
+        
+        return this;    
+    }
+
     // @purpose 
     // no arguments : return [ [key,value], ...]
     // String : return the value of the specified key
-    // String,Value : set the attribute 'String' to 'Value'
+    // String,Value : set the attribute 'String' to 'Value'. If the value is 
     // Object : set the properties the object as the attributes of the object
-    // Array : retrieve the set of properties with the given names.
+    // Array,[boolean] : retrieve the set of properties with the given names, 
+    //      or remove all of them if the boolean flag is set.
     function attr(arg1,arg2,ns){
         return attrInternal(this,this.dom,arg1,arg2,ns);
     }
@@ -595,10 +606,11 @@ svg.extend(function(svgElem,util){
                 }else{
                     ns = null;
                 }
+
                 // mixin the properties
                 for(var e in arg1){
                     if(Object.prototype.hasOwnProperty.call(arg1,e)){
-                        setAttr(dom,e,arg1[e],ns);
+                        setAttr(dom,e,arg1[e],ns);                        
                     }
                 }           
                 return context;
@@ -617,22 +629,42 @@ svg.extend(function(svgElem,util){
                     if(ns === undefined){
                         ns = null;
                     }
-                    setAttr(dom,arg1,arg2,ns);
+
+                    if( arg2 === null){
+                        rmAttr(dom,arg1,ns);
+                    }else{
+                        setAttr(dom,arg1,arg2,ns);
+                    }
+                    
                     return context;
                 }
             }else if( util.is(arg1,"array") ){
-                // return the object with all the specified properties
-                var rs = {};
-                var n = arg1.length;
-                for(var i = 0;i < n;++i){
-                    var v = dom.attributes[arg1[i]];
-                    if( v !== undefined && v !== null){
-                        if( v.value !== null){
-                            rs[arg1[i]] = v.value;
-                        }
-                    }                    
+                if( ns === undefined){
+                    ns = null;
                 }
-                return rs;
+
+                var n = arg1.length;
+                var i = 0;
+                if( util.is(arg2,"boolean") && arg2 === true){
+                    // we want to be removing all the elements
+                    for(i = 0; i < n; ++i){
+                        rmAttr(dom,arg1[i],ns);
+                    }
+                    return context;
+
+                }else{
+                    // return the object with all the specified properties
+                    var rs = {};
+                    for(i = 0;i < n;++i){
+                        var v = dom.attributes[arg1[i]];
+                        if( v !== undefined && v !== null){
+                            if( v.value !== null){
+                                rs[arg1[i]] = v.value;
+                            }
+                        }                    
+                    }
+                    return rs;
+                }                
             }
         }else {
             // return an array of attributes
@@ -677,17 +709,14 @@ svg.extend(function(svgElem,util){
     //      is the same as the 'to' context
     attr.DirectAccessNoFunction = function(to,d,context){
         if( context === undefined){context = to;}
+        if(util.is(to,"array") === true){
+            console.error("context must be an object");
+            return null;
+        }
         var n = d.length;
 
         for( var i = 0;i < n; ++i){
-            var e = d[i];
-            if( util.is(e,"string")){
-                console.error("nofunction");
-                e = {
-                    desired: d[i],
-                    isNum : (d[i].charAt(0) === "+")
-                };
-            }
+            var e = d[i];            
 
             (function(desired,real,isNum,munger){
                 if(real === undefined){real = desired;}
@@ -696,7 +725,7 @@ svg.extend(function(svgElem,util){
 
                 attr._defineProperty(to,desired,
                     function(){ //getter
-                        var rs = munger(context.attr(real),true);
+                        var rs = munger(context.attr(real),true);                        
                         if( isNum){
                             return util.toNum(context.attr(real));
                         }else{
@@ -705,7 +734,12 @@ svg.extend(function(svgElem,util){
                     },
                     function(val){ // setter
                         var rs = munger(val,false);
-                        context.attr(real,rs);
+                        if( rs === null){
+                            context.attr_rm(real);
+                        }else{
+                            context.attr(real,rs);
+                        }
+                        
                         return context;
                     }
                 );
@@ -729,7 +763,7 @@ svg.extend(function(svgElem,util){
     //      is the same as the 'to' context
     attr.DirectAccess = function(to,d,context){
         if( context === undefined){context = to;}
-        if(util.is(to,"array")){
+        if(util.is(to,"array") === true){
             console.error("context must be an object");
             return null;
         }
@@ -737,15 +771,7 @@ svg.extend(function(svgElem,util){
         var n = d.length;
 
         for( var i = 0;i < n; ++i){
-
-            var e = d[i];
-            if( util.is(d[i],"string")){
-                console.error("direct access");
-                e = {
-                    desired: d[i],
-                    isNum: (d[i].charAt(0) === "+")
-                };
-            }
+            var e = d[i];            
 
             // return a function closure which holds
             // the desired,real and isNum values
@@ -1996,7 +2022,6 @@ svg.extend(function(svgElem,util,modules){
             {desired:"r",isNum:true,munger:percentMunger}
         ];
         this.attr.DirectAccess(this,props);
-
 
         this.center = modules.common.makePointProperty("cx","cy",percentMunger);
         this.focal = modules.common.makePointProperty("fx","fy",percentMunger);
