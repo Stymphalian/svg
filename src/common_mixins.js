@@ -63,4 +63,34 @@ common.asXlinkable = function(){
     return this;
 }
 
+// @param x_name [string] - the string of the property for the x part of the point
+// @param y_name [string] - the string of the property for the x part of the point
+// @param munger [function] - optional. function(val,isGet){}
+common.makePointProperty = function(x_name,y_name,munger){    
+    return function(x,y){
+        if( x === undefined){
+            x = this.attr(x_name);
+            y = this.attr(y_name);
+            if(munger !== undefined){
+                x = munger(x,true);
+                y = munger(x,true);
+            }
+
+            var rs = {};
+            rs[x_name] = x;
+            rs[y_name] = y;
+            return rs;
+
+        }else{
+            if(munger !== undefined){
+                x = munger(x,false);
+                y = munger(y,false);
+            }
+            this.attr(x_name,x);
+            this.attr(y_name,y);
+            return this;
+        }
+    }
+}
+
 });

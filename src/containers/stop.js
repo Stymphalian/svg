@@ -6,8 +6,8 @@ svg.extend(function(svgElem,util,modules){
         var e = new svgElem("stop",this.dom);
 
         e.attr({
-            "stop-color":stop_color,
             "offset" : util.convertToPercentString(offset),
+            "stop-color":stop_color,            
             "stop-opacity" : 1.0
         });
         asStop.call(e);
@@ -25,11 +25,11 @@ svg.extend(function(svgElem,util,modules){
 
     function asStop(){
         var props =[
-            {desired:"color",real:"stop-color"},
-            {desired:"opacity",real:"stop-opacity",isNum:true},
-
             // amount of space offset from which we begin the stop
             {desired:"offset",isNum:true, munger:percentMunger},
+
+            {desired:"color",real:"stop-color"},
+            {desired:"opacity",real:"stop-opacity",isNum:true},
         ];
         this.attr.DirectAccess(this,props);
     }

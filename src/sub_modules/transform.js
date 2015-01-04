@@ -19,6 +19,11 @@ return {
 
         if( context !== undefined && context !== null){
            context._transform_values = [];
+           if( context.dom.nodeName === "linearGradient" || context.dom.nodeName === "radialGradient"){
+                context._transform_name = "gradientTransform"
+           }else{
+                context._transform_name = "transform";
+           }
         }
         asTransform.call(f,context);
         return f;
@@ -94,7 +99,7 @@ function set(context,s){
     if( s === undefined || s === null){return context;}
     var rs = fromStringToObject(s);
     context._transform_values = rs;
-    context.attr("transform",s);
+    context.attr(context._transform_name,s);
     return context;
 }
 
@@ -109,7 +114,7 @@ function save(context){
         }
     }
 
-    context.attr("transform",s);
+    context.attr(context._transform_name,s);
     return context;
 }
 
@@ -122,8 +127,8 @@ function asTransform(context){
             context._transform_values.pop();
         }
 
-        // set the transform attr to empty.
-        context.attr("transform","");
+        // set the "transform" attr to empty.
+        context.attr(context._transform_name,"");
     }
 
     // after modifying any transform attributes
@@ -143,12 +148,14 @@ function asTransform(context){
     }
 
     this.rotate = function(val,x,y){
-        if( x === undefined ){x = 0;}
-        if( y === undefined ){y = 0;}
+        var joiner = [];
+        if( x !== undefined ){joiner.push(x);}
+        if( y !== undefined ){joiner.push(y);}
+        joiner.push(val);
 
         context._transform_values.push({
             name:"rotate",
-            values:[x,y,val]
+            values:joiner
         });
 
         save(context);
@@ -208,7 +215,7 @@ function asTransform(context){
     this.fromStringToObject = fromStringToObject;
 
     this.updateFromDom = function(){
-        var s = context.attr("transform");
+        var s = context.attr(context._transform_name);
         if( s === undefined || s === null){return [];}
         var rs = fromStringToObject(s);
         

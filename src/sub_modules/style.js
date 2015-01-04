@@ -74,6 +74,11 @@ function asStyle(context){
         return context.attr("stroke",val);
     }
 
+    stroke.url = function(id){        
+        if(id === undefined){return null;}
+        return context.attr("stroke","url("+id+")");
+    }
+
     // @param val [string|number] - set the width of the stroke
     //  available units include: em,ex,px,pt,pc,cm,mm,in
     //  default units is px
@@ -94,7 +99,7 @@ function asStyle(context){
 
     // @param val [string] - how far into the dash array should the dasharray pattern be started.
     stroke.dashoffset = function(val){
-        return context.attr("stroke-dashoffset",val);
+        return util.toNum(context.attr("stroke-dashoffset",val));
     }
 
     // What cap should the lines have.
@@ -112,7 +117,7 @@ function asStyle(context){
     // @param val [number] - must be > 1.0 the amount of miter
     stroke.miterlimit = function(val){
         if ( val < 1.0 ){val = 1.0}
-        return context.attr("miterlimit",val);        
+        return util.toNum(context.attr("miterlimit",val));
     }
 
 
@@ -124,6 +129,11 @@ function asStyle(context){
     this.fill = fill;
     function fill(val){
         return context.attr("fill",val);
+    }
+
+    fill.url = function(id){
+        if(id === undefined){return null;}
+        return context.attr("fill","url("+id+")");
     }
 
     // @param [float,string,undefined] - the value to set the opacity.

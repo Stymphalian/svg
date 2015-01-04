@@ -22,7 +22,6 @@ util.regex = {
     transformCommand: /([a-zXY]*)\s*\(\s*((-?\d+\.?\d*(?:e[+-]?\d+)?\s*,?\s*)*)\)/gi,
     values: /(-?\d+\.?\d*(?:e[+-]?\d+)?)\s*,?\s*/gi,
     number: /(-?\d+\.?\d*(?:e[+-]?\d+)?)/
-    
 };
 
 // e.g
@@ -181,13 +180,21 @@ util.clone = function(src){
 
  function convertToPercentString(d){
     if( isPercentString(d) === false){
-        return d + "%";
+        if( d=== null ||  d=== undefined || d === ""){
+            return "";
+        }else{
+            return d + "%";
+        }        
     }
     return d;
 }
  function convertFromPercentString(d){
     if(isPercentString(d)){
-        return util.toNum(d.slice(0,-1));
+        if( d=== null ||  d=== undefined || d === ""){
+            return "";
+        }else{
+            return util.toNum(d.slice(0,-1));
+        }        
     }        
     return util.toNum(d);
 }    

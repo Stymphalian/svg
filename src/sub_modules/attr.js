@@ -5,28 +5,14 @@ svg.extend(function(svgElem,util){
     // @param key : the attribute to set
     // @param value : the value for the attribute to take.
     // @param ns : namespace for setting the attribute
-    function setAttr(key,value,ns){        
-        if (key === undefined){return this;}
-
-        // do any attribute munging for attributes
-        // i.e given an array we process it into a string suitable to 
-        // set on the dom node.
-        var val = value;
-        var munged = false;
-        if(this.attrMunger){
-            var d = this.attrMunger(key,value);
-            if( d.munged){
-                val = d.value;
-            }
-        }
-
-        // set the actual attribute on the dom node
-        if( val === undefined){return this;}
+    function setAttr(dom,key,value,ns){        
+        if (key === undefined){return;}
+        if( value === undefined){return;}
 
         if( ns === undefined || ns === null){
-            this.dom.setAttribute(key,val);
+            dom.setAttribute(key,value);
         }else{
-            this.dom.setAttributeNS(ns,key,val);
+            dom.setAttributeNS(ns,key,value);
         }
         
         return this;    
@@ -38,7 +24,13 @@ svg.extend(function(svgElem,util){
     // String,Value : set the attribute 'String' to 'Value'
     // Object : set the properties the object as the attributes of the object
     // Array : retrieve the set of properties with the given names.
-    function attr(arg1,arg2,ns){        
+    function attr(arg1,arg2,ns){
+        return attrInternal(this,this.dom,arg1,arg2,ns);
+    }
+
+    // seems like a shit idea.
+    attr.attrInternal = attrInternal;
+    function attrInternal(context,dom,arg1,arg2,ns){
         if(arg1 !== undefined){
             if( util.is(arg1,"object") ){
                 if( arg2 !== undefined){
@@ -49,14 +41,14 @@ svg.extend(function(svgElem,util){
                 // mixin the properties
                 for(var e in arg1){
                     if(Object.prototype.hasOwnProperty.call(arg1,e)){
-                        setAttr.call(this,e,arg1[e],ns);
+                        setAttr(dom,e,arg1[e],ns);
                     }
                 }           
-                return this;
+                return context;
             }else if( util.is(arg1,"string") ) {
                 if( arg2 === undefined){
                     // getter
-                    var rs = this.dom.attributes[arg1]
+                    var rs = dom.attributes[arg1]
                     if( rs !== null && rs !== undefined){
                         return rs.value;
                     }else{
@@ -68,15 +60,15 @@ svg.extend(function(svgElem,util){
                     if(ns === undefined){
                         ns = null;
                     }
-                    setAttr.call(this,arg1,arg2,ns);
-                    return this;
+                    setAttr(dom,arg1,arg2,ns);
+                    return context;
                 }
             }else if( util.is(arg1,"array") ){
                 // return the object with all the specified properties
                 var rs = {};
                 var n = arg1.length;
                 for(var i = 0;i < n;++i){
-                    var v = this.dom.attributes[arg1[i]];
+                    var v = dom.attributes[arg1[i]];
                     if( v !== undefined && v !== null){
                         if( v.value !== null){
                             rs[arg1[i]] = v.value;
@@ -87,17 +79,17 @@ svg.extend(function(svgElem,util){
             }
         }else {
             // return an array of attributes
-            return (function(){
+            return (function(context,dom){
                 var attrs = [];
-                var n = this.dom.attributes.length;
+                var n = dom.attributes.length;
                 var key,value;
                 for(var i = 0;i < n; ++i){              
-                    key = this.dom.attributes[i].name;
-                    value = this.dom.attributes[i].value;                   
+                    key = dom.attributes[i].name;
+                    value = dom.attributes[i].value;                   
                     attrs.push([key,value]);
                 }
                 return attrs;
-            }).call(this);
+            }(context,dom));
         }
     }
 
@@ -180,6 +172,11 @@ svg.extend(function(svgElem,util){
     //      is the same as the 'to' context
     attr.DirectAccess = function(to,d,context){
         if( context === undefined){context = to;}
+        if(util.is(context,"array") === false){
+            console.error("context must be an object");
+            return null;
+        }
+
         var n = d.length;
 
         for( var i = 0;i < n; ++i){

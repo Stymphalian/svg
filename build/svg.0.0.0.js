@@ -112,7 +112,6 @@ util.regex = {
     transformCommand: /([a-zXY]*)\s*\(\s*((-?\d+\.?\d*(?:e[+-]?\d+)?\s*,?\s*)*)\)/gi,
     values: /(-?\d+\.?\d*(?:e[+-]?\d+)?)\s*,?\s*/gi,
     number: /(-?\d+\.?\d*(?:e[+-]?\d+)?)/
-    
 };
 
 // e.g
@@ -271,13 +270,21 @@ util.clone = function(src){
 
  function convertToPercentString(d){
     if( isPercentString(d) === false){
-        return d + "%";
+        if( d=== null ||  d=== undefined || d === ""){
+            return "";
+        }else{
+            return d + "%";
+        }        
     }
     return d;
 }
  function convertFromPercentString(d){
     if(isPercentString(d)){
-        return util.toNum(d.slice(0,-1));
+        if( d=== null ||  d=== undefined || d === ""){
+            return "";
+        }else{
+            return util.toNum(d.slice(0,-1));
+        }        
     }        
     return util.toNum(d);
 }    
@@ -360,7 +367,7 @@ svg.module(function(lib){
         // of the svgElem.<thingToMixin> function
         // i.e svgElem.circle.asCircle.call(<element>);
         var asFuncs = f["as"+capFirstLetter(f.name)];
-        if( asFuncs && Object.prototype.toString.call(this) === "[object Function]"){
+        if( asFuncs && Object.prototype.toString.call(asFuncs) === "[object Function]"){
             // there was only a singe function attached
             asFuncs = [asFuncs];            
         }
@@ -469,6 +476,36 @@ common.asXlinkable = function(){
     return this;
 }
 
+// @param x_name [string] - the string of the property for the x part of the point
+// @param y_name [string] - the string of the property for the x part of the point
+// @param munger [function] - optional. function(val,isGet){}
+common.makePointProperty = function(x_name,y_name,munger){    
+    return function(x,y){
+        if( x === undefined){
+            x = this.attr(x_name);
+            y = this.attr(y_name);
+            if(munger !== undefined){
+                x = munger(x,true);
+                y = munger(x,true);
+            }
+
+            var rs = {};
+            rs[x_name] = x;
+            rs[y_name] = y;
+            return rs;
+
+        }else{
+            if(munger !== undefined){
+                x = munger(x,false);
+                y = munger(y,false);
+            }
+            this.attr(x_name,x);
+            this.attr(y_name,y);
+            return this;
+        }
+    }
+}
+
 });
 //colorUtil.js
 svg.extend(function(svgElem,util){
@@ -525,28 +562,14 @@ svg.extend(function(svgElem,util){
     // @param key : the attribute to set
     // @param value : the value for the attribute to take.
     // @param ns : namespace for setting the attribute
-    function setAttr(key,value,ns){        
-        if (key === undefined){return this;}
-
-        // do any attribute munging for attributes
-        // i.e given an array we process it into a string suitable to 
-        // set on the dom node.
-        var val = value;
-        var munged = false;
-        if(this.attrMunger){
-            var d = this.attrMunger(key,value);
-            if( d.munged){
-                val = d.value;
-            }
-        }
-
-        // set the actual attribute on the dom node
-        if( val === undefined){return this;}
+    function setAttr(dom,key,value,ns){        
+        if (key === undefined){return;}
+        if( value === undefined){return;}
 
         if( ns === undefined || ns === null){
-            this.dom.setAttribute(key,val);
+            dom.setAttribute(key,value);
         }else{
-            this.dom.setAttributeNS(ns,key,val);
+            dom.setAttributeNS(ns,key,value);
         }
         
         return this;    
@@ -558,7 +581,13 @@ svg.extend(function(svgElem,util){
     // String,Value : set the attribute 'String' to 'Value'
     // Object : set the properties the object as the attributes of the object
     // Array : retrieve the set of properties with the given names.
-    function attr(arg1,arg2,ns){        
+    function attr(arg1,arg2,ns){
+        return attrInternal(this,this.dom,arg1,arg2,ns);
+    }
+
+    // seems like a shit idea.
+    attr.attrInternal = attrInternal;
+    function attrInternal(context,dom,arg1,arg2,ns){
         if(arg1 !== undefined){
             if( util.is(arg1,"object") ){
                 if( arg2 !== undefined){
@@ -569,14 +598,14 @@ svg.extend(function(svgElem,util){
                 // mixin the properties
                 for(var e in arg1){
                     if(Object.prototype.hasOwnProperty.call(arg1,e)){
-                        setAttr.call(this,e,arg1[e],ns);
+                        setAttr(dom,e,arg1[e],ns);
                     }
                 }           
-                return this;
+                return context;
             }else if( util.is(arg1,"string") ) {
                 if( arg2 === undefined){
                     // getter
-                    var rs = this.dom.attributes[arg1]
+                    var rs = dom.attributes[arg1]
                     if( rs !== null && rs !== undefined){
                         return rs.value;
                     }else{
@@ -588,15 +617,15 @@ svg.extend(function(svgElem,util){
                     if(ns === undefined){
                         ns = null;
                     }
-                    setAttr.call(this,arg1,arg2,ns);
-                    return this;
+                    setAttr(dom,arg1,arg2,ns);
+                    return context;
                 }
             }else if( util.is(arg1,"array") ){
                 // return the object with all the specified properties
                 var rs = {};
                 var n = arg1.length;
                 for(var i = 0;i < n;++i){
-                    var v = this.dom.attributes[arg1[i]];
+                    var v = dom.attributes[arg1[i]];
                     if( v !== undefined && v !== null){
                         if( v.value !== null){
                             rs[arg1[i]] = v.value;
@@ -607,17 +636,17 @@ svg.extend(function(svgElem,util){
             }
         }else {
             // return an array of attributes
-            return (function(){
+            return (function(context,dom){
                 var attrs = [];
-                var n = this.dom.attributes.length;
+                var n = dom.attributes.length;
                 var key,value;
                 for(var i = 0;i < n; ++i){              
-                    key = this.dom.attributes[i].name;
-                    value = this.dom.attributes[i].value;                   
+                    key = dom.attributes[i].name;
+                    value = dom.attributes[i].value;                   
                     attrs.push([key,value]);
                 }
                 return attrs;
-            }).call(this);
+            }(context,dom));
         }
     }
 
@@ -700,6 +729,11 @@ svg.extend(function(svgElem,util){
     //      is the same as the 'to' context
     attr.DirectAccess = function(to,d,context){
         if( context === undefined){context = to;}
+        if(util.is(to,"array")){
+            console.error("context must be an object");
+            return null;
+        }
+
         var n = d.length;
 
         for( var i = 0;i < n; ++i){
@@ -901,6 +935,11 @@ return {
 
         if( context !== undefined && context !== null){
            context._transform_values = [];
+           if( context.dom.nodeName === "linearGradient" || context.dom.nodeName === "radialGradient"){
+                context._transform_name = "gradientTransform"
+           }else{
+                context._transform_name = "transform";
+           }
         }
         asTransform.call(f,context);
         return f;
@@ -976,7 +1015,7 @@ function set(context,s){
     if( s === undefined || s === null){return context;}
     var rs = fromStringToObject(s);
     context._transform_values = rs;
-    context.attr("transform",s);
+    context.attr(context._transform_name,s);
     return context;
 }
 
@@ -991,7 +1030,7 @@ function save(context){
         }
     }
 
-    context.attr("transform",s);
+    context.attr(context._transform_name,s);
     return context;
 }
 
@@ -1004,8 +1043,8 @@ function asTransform(context){
             context._transform_values.pop();
         }
 
-        // set the transform attr to empty.
-        context.attr("transform","");
+        // set the "transform" attr to empty.
+        context.attr(context._transform_name,"");
     }
 
     // after modifying any transform attributes
@@ -1025,12 +1064,14 @@ function asTransform(context){
     }
 
     this.rotate = function(val,x,y){
-        if( x === undefined ){x = 0;}
-        if( y === undefined ){y = 0;}
+        var joiner = [];
+        if( x !== undefined ){joiner.push(x);}
+        if( y !== undefined ){joiner.push(y);}
+        joiner.push(val);
 
         context._transform_values.push({
             name:"rotate",
-            values:[x,y,val]
+            values:joiner
         });
 
         save(context);
@@ -1090,7 +1131,7 @@ function asTransform(context){
     this.fromStringToObject = fromStringToObject;
 
     this.updateFromDom = function(){
-        var s = context.attr("transform");
+        var s = context.attr(context._transform_name);
         if( s === undefined || s === null){return [];}
         var rs = fromStringToObject(s);
         
@@ -1180,6 +1221,11 @@ function asStyle(context){
         return context.attr("stroke",val);
     }
 
+    stroke.url = function(id){        
+        if(id === undefined){return null;}
+        return context.attr("stroke","url("+id+")");
+    }
+
     // @param val [string|number] - set the width of the stroke
     //  available units include: em,ex,px,pt,pc,cm,mm,in
     //  default units is px
@@ -1200,7 +1246,7 @@ function asStyle(context){
 
     // @param val [string] - how far into the dash array should the dasharray pattern be started.
     stroke.dashoffset = function(val){
-        return context.attr("stroke-dashoffset",val);
+        return util.toNum(context.attr("stroke-dashoffset",val));
     }
 
     // What cap should the lines have.
@@ -1218,7 +1264,7 @@ function asStyle(context){
     // @param val [number] - must be > 1.0 the amount of miter
     stroke.miterlimit = function(val){
         if ( val < 1.0 ){val = 1.0}
-        return context.attr("miterlimit",val);        
+        return util.toNum(context.attr("miterlimit",val));
     }
 
 
@@ -1230,6 +1276,11 @@ function asStyle(context){
     this.fill = fill;
     function fill(val){
         return context.attr("fill",val);
+    }
+
+    fill.url = function(id){
+        if(id === undefined){return null;}
+        return context.attr("fill","url("+id+")");
     }
 
     // @param [float,string,undefined] - the value to set the opacity.
@@ -1694,8 +1745,7 @@ svg.extend(function(svgElem,util,modules){
     svgElem.prototype.linearGradient = linearGradient;
     linearGradient.asLinearGradient = asLinearGradient;
     svgElem.prototype.radialGradient = radialGradient;
-    radialGradient.asLinearGradient = asRadialGradient;
-
+    radialGradient.asRadialGradient = asRadialGradient;
 
     // ----------------------
     // linearGradient
@@ -1711,11 +1761,168 @@ svg.extend(function(svgElem,util,modules){
             x2:util.convertToPercentString(x2),
             y2:util.convertToPercentString(y2)
         });
+        e._stops_array = [];
 
         return e;
     }
 
     function asGradientCommon(){
+
+        var props =[
+            {desired:"id"},
+
+            // pad | repeat | reflect
+            {desired:"spreadMethod"},
+
+            // userSpaceOnUse | objectBoundingBox
+            {desired:"units",real:"gradientUnits"},
+            {desired:"gradientUnits"}
+        ];
+
+        this.attr.DirectAccess(this,props);
+
+        // @param vals - 
+        // vals === undefined -- retrieve the entire stop array
+        // vals === number -- retreive a single entry in the stop array
+        // vals === array -- set the stops_array to the given array
+        //      format of the array is [ [offset,color,opacity],... ]
+        this.stops = function(vals){
+            if(vals === undefined){
+                return this._stops_array;
+
+            }else if( util.is(vals,"number")){
+                // requesting a single stop values;
+                var index = vals
+                if(index < -this._stops_array.length){return this;}
+                if(index >= this._stops_array.length){return this;}
+                if( index < 0 ){
+                    index = this._stops_array.length + index;
+                }
+
+                return this._stops_array[index];
+            }else{
+                var n =vals.length;
+                this._stops_array = [];
+                for(var i = 0; i < n ;++i){
+                    this._stops_array.push({
+                        offset: vals[i][0],
+                        color: vals[i][1],
+                        opacity: vals[i][2]
+                    });
+                } 
+
+                setStops(this,this._stops_array);
+                return this;
+            }
+        }
+
+        // push the information in the stops array into the 
+        // the dom.
+        this.save = function(){ 
+            setStops(this,this._stops_array);
+            return this;
+        }
+
+        this.updateFromDom = function(){
+            var s = getAllStopElems(this.dom);
+            this._stops_array = makeArrayCopyofStops(s);
+        }
+
+        function getAllStopElems(dom){
+            var rs = [];
+            var children = dom.childNodes;
+            var n = children.length;
+            for(var i = 0;i < n; ++i ){
+                if(children[i].nodeName ==="stop"){
+                    rs.push(children[i]);
+                }
+            }            
+            return rs;
+        }
+
+
+        // @param stops [array] - an array of dom <stop> dom nodes
+        // @return rs - return an array of object
+        // [{offset: x, color: y , opacity: z},...]
+        function makeArrayCopyofStops(stops){
+            var attr = svgElem.prototype.attr.attrInternal;
+        
+            var rs = [];
+            var i = 0;
+            var n = stops.length;
+            for( i = 0;i < n; ++i){
+                rs.push({
+                    "offset": attr(stops[i],"offset"),
+                    "stop-color" : attr(stops[i],"stop-color"),
+                    "stop-opacity" : attr(stops[i],"stop-opacity"),
+                });
+            }
+
+            return rs;
+        }
+
+        function setStops(context,stopsArray){
+            // helper methods
+            var attr = svgElem.prototype.attr.attrInternal;
+            var stopsPool = getAllStopElems(context.dom);
+
+            // create more stops if not enough
+            while(stopsPool.length < stopsArray.length){
+                var s = context.stop(0,0,0);
+                stopsPool.push(s.dom);
+            }
+
+            var numUsed = 0;
+            var n = stopsPool.length;
+            for( var i = 0; i < n; ++i){
+                attr(context,stopsPool[i],{
+                    "offset": util.convertToPercentString(stopsArray[i].offset),
+                    "stop-color": stopsArray[i].color,
+                    "stop-opacity": stopsArray[i].opacity
+                });
+
+                numUsed += 1;
+            }
+
+            if( numUsed < stopsPool.length){
+                // delete all the extra nodes
+                var parent = stopsPool[numUsed];
+                var j = numUsed;
+                n = stopsPool.length;            
+                for(var j = numUsed; j < stopsPool.length; ++j){
+                    parent.removeChild(stopsPool[j])
+                }
+            }
+
+            return context;
+        }        
+
+        return this;
+    }
+
+    
+
+    function asLinearGradient(){        
+        // for all the stops properties
+        asGradientCommon.call(this);
+
+        // get href property
+        modules.common.asXlinkable.call(this);
+
+        var props = [
+            // amound of space into the shape in which the gradient should begin at.
+            // please use a percentage (i.e "50%")
+            {desired:"x1",isNum:true,munger:percentMunger},
+            {desired:"y1",isNum:true,munger:percentMunger},
+
+            // amount of space into the shape in which the gradient should end
+            // please use a percentage (i.e "50%")
+            {desired:"x2",isNum:true,munger:percentMunger},
+            {desired:"y2",isNum:true,munger:percentMunger},
+        ];
+
+        this.attr.DirectAccess(this,props);
+                
         this.start = function(x,y){
             if( x === undefined){
                 x = util.convertFromPercentString(this.attr("x1"));
@@ -1750,125 +1957,52 @@ svg.extend(function(svgElem,util,modules){
             }
         }
 
-        function getAllStopElems(){
-            var rs = [];
-            var children = this.dom.childNodes;
-            var n = children.length;
-            for(var i = 0;i < n; ++i ){
-                if(children[i].nodeName ==="stop"){
-                    rs.push(children[i]);
-                }
-            }            
-            return rs;
-        }
-
-
-        // @param stops [array] - an array of dom <stop> dom nodes
-        // @return rs - return an array of object
-        // [{offset: x, color: y , opacity: z},...]
-        function makeArrayCopyofStops(stops){
-            var attr = svgElem.attr.attrInternal;
-        
-            var rs = [];
-            var i = 0;
-            var n = stops.length;
-            for( i = 0;i < n; ++i){
-                var poj = {
-
-                }
-                rs.push({
-                    "offset": attr(stops[i],"offset"),
-                    "stop-color" : attr(stops[i],"stop-color"),
-                    "stop-opacity" : attr(stops[i],"stop-opacity"),
-                });
-            }
-
-            return rs;
-        }
-
-        function setStops(context,stopsArray){
-            // helper methods
-            var attr = svgElem.attr.attrInternal;
-            var stopsPool = getAllStopElems();
-
-            // create more stops if not enough
-            while(stopsPool.length < stopsArray.length){
-                var s = context.stop(0,0,0);
-                stopsPool.push(s.dom);
-            }
-
-            var numUsed = 0;
-            var n = stopsPool.length;
-            for( var i = 0; i < n; ++i){
-                attr(stopsPool[i],{
-                    "offset": util.convertToPercentString(stopsArray[i].offset),
-                    "stop-color": stopsArray[i].color,
-                    "stop-opacity": stopsArray[i].opacity
-                });
-
-                numUsed += 1;
-            }
-
-            if( numUsed < stopsPool.length){
-                // delete all the extra nodes
-                var parent = stopsPool[numUsed];
-                var j = numUsed;
-                n = stopsPool.length;            
-                for(var j = numUsed; j < stopsPool.length; ++j){
-                    parent.removeChild(stopsPool[j])
-                }
-            }
-
-            return context;
-        }
-
-
         return this;
-    }
-
-    
-
-    function asLinearGradient(){        
-        asGradientCommon.call(this);
-
-        var props = [
-            {desired:"id"},
-
-            // amound of space into the shape in which the gradient should begin at.
-            // please use a percentage (i.e "50%")
-            {desired:"x1",isNum:true,munger:percentMunger},
-            {desired:"y1",isNum:true,munger:percentMunger},
-
-            // amount of space into the shape in whcih the gradient should end
-            // please use a percentage (i.e "50%")
-            {desired:"x2",isNum:true,munger:percentMunger},
-            {desired:"y2",isNum:true,munger:percentMunger},
-
-            // pad | repeat | reflect
-            {desired:"spreadMethod"},
-
-            // userSpaceOnUse | objectBoundingBox
-            {desired:"units",real:"gradientUnits"},
-            {desired:"gradientUnits"},
-        ];
-
-        this.attr.DirectAccess(this,props);
-                
-        // get href property
-        modules.common.asXlinkable.call(this);
     }
 
 
     // ----------------------
     // radialGradient
     // ----------------------
-    function radialGradient(){
+    function radialGradient(id,fx,fy,r){
+        var e = new svgElem("radialGradient",this.dom);        
 
+        asRadialGradient.call(e);
+        e.attr({
+            id:id,        
+            fx:util.convertToPercentString(fx),
+            fy:util.convertToPercentString(fy),
+            r:util.convertToPercentString(r)
+        });
+
+        return e;
     }
     function asRadialGradient(){
+        asGradientCommon.call(this);
 
+        modules.common.asXlinkable.call(this);
+
+        var props = [
+            // amound of space into the shape in which the gradient should begin at.
+            // please use a percentage (i.e "50%")
+            {desired:"cx",isNum:true,munger:percentMunger},
+            {desired:"cy",isNum:true,munger:percentMunger},
+
+            // amount of space into the shape in which the gradient should end
+            // please use a percentage (i.e "50%")
+            {desired:"fx",isNum:true,munger:percentMunger},
+            {desired:"fy",isNum:true,munger:percentMunger},
+
+            {desired:"r",isNum:true,munger:percentMunger}
+        ];
+        this.attr.DirectAccess(this,props);
+
+
+        this.center = modules.common.makePointProperty("cx","cy",percentMunger);
+        this.focal = modules.common.makePointProperty("fx","fy",percentMunger);
+
+        return this;
     }
-
 
     function percentMunger(val,isGet){
         if(isGet){
@@ -1887,8 +2021,8 @@ svg.extend(function(svgElem,util,modules){
         var e = new svgElem("stop",this.dom);
 
         e.attr({
-            "stop-color":stop_color,
             "offset" : util.convertToPercentString(offset),
+            "stop-color":stop_color,            
             "stop-opacity" : 1.0
         });
         asStop.call(e);
@@ -1906,11 +2040,11 @@ svg.extend(function(svgElem,util,modules){
 
     function asStop(){
         var props =[
-            {desired:"color",real:"stop-color"},
-            {desired:"opacity",real:"stop-opacity",isNum:true},
-
             // amount of space offset from which we begin the stop
             {desired:"offset",isNum:true, munger:percentMunger},
+
+            {desired:"color",real:"stop-color"},
+            {desired:"opacity",real:"stop-opacity",isNum:true},
         ];
         this.attr.DirectAccess(this,props);
     }

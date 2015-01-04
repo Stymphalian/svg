@@ -64,7 +64,7 @@ svg.module(function(lib){
         // of the svgElem.<thingToMixin> function
         // i.e svgElem.circle.asCircle.call(<element>);
         var asFuncs = f["as"+capFirstLetter(f.name)];
-        if( asFuncs && Object.prototype.toString.call(this) === "[object Function]"){
+        if( asFuncs && Object.prototype.toString.call(asFuncs) === "[object Function]"){
             // there was only a singe function attached
             asFuncs = [asFuncs];            
         }
