@@ -56,7 +56,8 @@ var svg = (function(){
         // we do this round about way in order to access the plugin using the 
         // simpler syntax
         //      elem.<plugin> instead of elem.<plugin>()        
-        lib.plugin.has[rs.name] = true;
+        // lib.plugin.has[rs.name] = true;
+        lib.plugin.has[rs.name] = rs.contructor;
         Object.defineProperty(svgElem.prototype,rs.name,{
             get : function(){                                
                 var instance = new rs.constructor(this);

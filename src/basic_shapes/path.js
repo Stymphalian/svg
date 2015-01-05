@@ -76,9 +76,6 @@ svg.extend(function(svgElem,util){
         return command;
     }
 
-
-
-
     function asPath(){
         this.d = function(val){
             if( val === undefined){

@@ -67,7 +67,8 @@ var svg = (function(){
         // we do this round about way in order to access the plugin using the 
         // simpler syntax
         //      elem.<plugin> instead of elem.<plugin>()        
-        lib.plugin.has[rs.name] = true;
+        // lib.plugin.has[rs.name] = true;
+        lib.plugin.has[rs.name] = rs.contructor;
         Object.defineProperty(svgElem.prototype,rs.name,{
             get : function(){                                
                 var instance = new rs.constructor(this);
@@ -110,6 +111,7 @@ util.regex = {
     // https://github.com/adobe-webplatform/Snap.svg/blob/master/src/svg.js
     pathCommand: /([a-z])[,\s]*((-?\d+\.?\d*(?:e[+-]?\d+)?\s*,?\s*)*)/gi,     
     transformCommand: /([a-zXY]*)\s*\(\s*((-?\d+\.?\d*(?:e[+-]?\d+)?\s*,?\s*)*)\)/gi,
+    semiColonValues: /(-?\d+\.?\d*(?:e[+-]?\d+)?)\s*;\s*/gi,
     values: /(-?\d+\.?\d*(?:e[+-]?\d+)?)\s*,?\s*/gi,
     number: /(-?\d+\.?\d*(?:e[+-]?\d+)?)/
 };
@@ -503,6 +505,113 @@ common.makePointProperty = function(x_name,y_name,munger){
             this.attr(x_name,x);
             this.attr(y_name,y);
             return this;
+        }
+    }
+}
+
+common.applyAnimationProps = function(){
+    var props = [
+        // CSS | XML | auto
+        {desired:"attributeType"},
+
+        // the attribute name that we want to modify
+        {desired:"attributeName"},
+
+        // clock-value |  <id>.[begin|end] | <id>.[event_type]
+        // id.repeat(number) | accessKey(char) | realworld-clock_time
+        // indefinite
+        {desired:"begin"},
+        {desired:"end"},
+
+        // clockvalue hh:mm:ss.iii | indefinite     
+        {desired:"dur"},
+
+        // clockvalue hh:mm:ss.iii , default is 0
+        {desired:"min"},
+        {desired:"max"},
+
+        // always  | whenNotActive | never
+        {desired:"restart"},
+
+        // number | indefinite
+        {desired:"repeatCount"},
+
+        // clockvalue hh:mm:ss.iii | indefinite
+        {desired:"repeatDur"},
+
+        // remove (default)  | freeze
+        {desired:"fill"},
+
+        // discrete | linear | paced | spline
+        {desired:"calcMode"},
+
+        // list of semi-colon base values
+        // 60; 110; 60; 10; 60;    
+        {desired:"values",munger:mungeSemicolonNumbersList},
+
+        //0; 0.25; 0.5; 0.75; 1
+        {desired:"keyTimes",munger:mungeSemicolonNumbersList},
+
+        // list of bezier curve points
+        // x1 y1 x2 y2
+        // ignored unless the calcMode is set to spline
+        {desired:"keySplines", munger:mungeNumbersList},
+
+        // from, to values for the attribute to go between
+        {desired:"from",isNum:true,munger:mungeNumbersList},
+        {desired:"to",isNum:true,munger:mungeNumbersList},
+
+        {desired:"by"},
+        {desired:"autoReverse"},    
+        {desired:"accelerate"},
+        {desired:"decelerate"},
+
+        // replace (default) | sum
+        {desired:"additive"},
+
+        // none | sum
+        {desired:"accumulate"}
+    ];
+
+    this.attr.DirectAccess(this,props);
+
+    function mungeSemicolonNumbersList(val,isGet){
+        if( val === null){return null;}
+
+        var rs;
+        if(isGet ){
+            // convert string into an array of numbers
+            rs = [];
+            val.replace(util.regex.semiColonValues,function(_,num){
+                num && rs.push(util.toNum(num));
+            });
+            return rs;
+
+        }else{
+            if( util.is(val,"array")){
+                return val.join(";");
+            }else{
+                return val;
+            }
+        }
+    }
+
+    function mungeNumbersList(val,isGet){
+        if( val === null){return null;}
+        if( isGet){
+            // val is a string
+            var rs = val.split(util.regex.split_seperator).map(function(v,k,arr){
+                return util.toNum(v);
+            });
+            return rs;
+
+        }else{
+            if(util.is(val,"array")){
+                var s = val.join(" ");
+                return s;
+            }else{
+                return s;
+            }
         }
     }
 }
@@ -2202,6 +2311,111 @@ svg.extend(function(svgElem,util,modules){
     }
 
 });
+//set.js
+svg.extend(function(svgElem,util,modules){
+    svgElem.prototype.set = set;
+    set.asSet = asSet;
+    
+    function set(attrName,to,begin){
+        var e = new svgElem("set",this.dom);
+        asSet.call(e);
+        e.attr({attributeName:attrName});
+        return e;
+    }
+
+    function asSet(){
+        modules.common.applyAnimationProps.call(this);
+        return this;
+    }
+});
+//animateMotion.js
+svg.extend(function(svgElem,util,modules){
+    svgElem.prototype.animateMotion = animateMotion;
+    animateMotion.asAnimateMotion = asAnimateMotion;
+    
+    function animateMotion(attrName){
+        var e = new svgElem("animateMotion",this.dom);
+        asAnimateMotion.call(e);
+        e.attr()
+        e.attr({
+            // attributeType:"XML",
+            attributeName:attrName            
+        });
+
+        return e;
+    }
+
+    function asAnimateMotion(){
+        modules.common.applyAnimationProps.call(this);
+
+        var props = [
+            {desired:"rotate"},
+            {desired:"path"},
+            {desired:"mpath"}
+        ];
+        this.attr.directAccess(this,props);
+        
+        return this;
+    }
+});
+//animateTransform.js
+svg.extend(function(svgElem,util,modules){
+    svgElem.prototype.animateTransform = animateTransform;
+    animateTransform.asAnimateTransform = asAnimateTransform;
+    
+    function animateTransform(type){
+        var e = new svgElem("animateTransform",this.dom);
+        asAnimateTransform.call(e);
+        
+        var attrName ="transform";
+        if( this.dom.nodeName === "linearGradient" || this.dom.nodeName === "radialGradient"){
+            attrName = "gradientTransform";
+        }else if (this.dom.nodeName === "pattern"){
+            attrName = "patternTransform";
+        }
+        e.attr({
+            attributeName:attrName,
+            type:type
+        });
+
+        return e;
+    }
+
+    function asAnimateTransform(){
+        modules.common.applyAnimationProps.call(this);
+        var props = [
+            // auto | ??
+            {desired:"rotate"},
+
+            // translate | rotate | skewX | skewY | scale
+            {desired:"type"}
+        ];
+        this.attr.DirectAccess(this,props);
+
+        return this;
+    }
+});
+//animate.js
+svg.extend(function(svgElem,util,modules){
+    svgElem.prototype.animate = animate;
+    animate.asAnimate = asAnimate;
+    
+    function animate(attrName){
+        var e = new svgElem("animate",this.dom);
+        asAnimate.call(e);
+        e.attr({
+            // attributeType:"XML",
+            attributeName:attrName            
+        });
+
+        return e;
+    }
+
+    function asAnimate(){
+        modules.common.applyAnimationProps.call(this);
+        return this;
+    }
+});
 //rect.js
 svg.extend(function(svgElem,util){
     svgElem.prototype.rect = rect;
@@ -2603,9 +2817,6 @@ svg.extend(function(svgElem,util){
         }
         return command;
     }
-
-
-
 
     function asPath(){
         this.d = function(val){

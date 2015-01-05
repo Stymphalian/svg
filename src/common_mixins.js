@@ -93,4 +93,111 @@ common.makePointProperty = function(x_name,y_name,munger){
     }
 }
 
+common.applyAnimationProps = function(){
+    var props = [
+        // CSS | XML | auto
+        {desired:"attributeType"},
+
+        // the attribute name that we want to modify
+        {desired:"attributeName"},
+
+        // clock-value |  <id>.[begin|end] | <id>.[event_type]
+        // id.repeat(number) | accessKey(char) | realworld-clock_time
+        // indefinite
+        {desired:"begin"},
+        {desired:"end"},
+
+        // clockvalue hh:mm:ss.iii | indefinite     
+        {desired:"dur"},
+
+        // clockvalue hh:mm:ss.iii , default is 0
+        {desired:"min"},
+        {desired:"max"},
+
+        // always  | whenNotActive | never
+        {desired:"restart"},
+
+        // number | indefinite
+        {desired:"repeatCount"},
+
+        // clockvalue hh:mm:ss.iii | indefinite
+        {desired:"repeatDur"},
+
+        // remove (default)  | freeze
+        {desired:"fill"},
+
+        // discrete | linear | paced | spline
+        {desired:"calcMode"},
+
+        // list of semi-colon base values
+        // 60; 110; 60; 10; 60;    
+        {desired:"values",munger:mungeSemicolonNumbersList},
+
+        //0; 0.25; 0.5; 0.75; 1
+        {desired:"keyTimes",munger:mungeSemicolonNumbersList},
+
+        // list of bezier curve points
+        // x1 y1 x2 y2
+        // ignored unless the calcMode is set to spline
+        {desired:"keySplines", munger:mungeNumbersList},
+
+        // from, to values for the attribute to go between
+        {desired:"from",isNum:true,munger:mungeNumbersList},
+        {desired:"to",isNum:true,munger:mungeNumbersList},
+
+        {desired:"by"},
+        {desired:"autoReverse"},    
+        {desired:"accelerate"},
+        {desired:"decelerate"},
+
+        // replace (default) | sum
+        {desired:"additive"},
+
+        // none | sum
+        {desired:"accumulate"}
+    ];
+
+    this.attr.DirectAccess(this,props);
+
+    function mungeSemicolonNumbersList(val,isGet){
+        if( val === null){return null;}
+
+        var rs;
+        if(isGet ){
+            // convert string into an array of numbers
+            rs = [];
+            val.replace(util.regex.semiColonValues,function(_,num){
+                num && rs.push(util.toNum(num));
+            });
+            return rs;
+
+        }else{
+            if( util.is(val,"array")){
+                return val.join(";");
+            }else{
+                return val;
+            }
+        }
+    }
+
+    function mungeNumbersList(val,isGet){
+        if( val === null){return null;}
+        if( isGet){
+            // val is a string
+            var rs = val.split(util.regex.split_seperator).map(function(v,k,arr){
+                return util.toNum(v);
+            });
+            return rs;
+
+        }else{
+            if(util.is(val,"array")){
+                var s = val.join(" ");
+                return s;
+            }else{
+                return s;
+            }
+        }
+    }
+}
+
 });

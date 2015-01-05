@@ -49,7 +49,6 @@ gulp.task("build",function(cb){
         "src/sub_modules/font.js",
         "src/sub_modules/mark.js",
         
-
         // containers
         "src/containers/svg.js", // must be the first element defined
 
@@ -64,6 +63,12 @@ gulp.task("build",function(cb){
         "src/containers/pattern.js",
         "src/containers/clipPath.js",
         "src/containers/mask.js",
+    
+        // animation        
+        "src/animation/set.js",
+        "src/animation/animateMotion.js",
+        "src/animation/animateTransform.js",
+        "src/animation/animate.js",
 
         // basic shapes        
         "src/basic_shapes/rect.js",

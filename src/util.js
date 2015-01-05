@@ -20,6 +20,7 @@ util.regex = {
     // https://github.com/adobe-webplatform/Snap.svg/blob/master/src/svg.js
     pathCommand: /([a-z])[,\s]*((-?\d+\.?\d*(?:e[+-]?\d+)?\s*,?\s*)*)/gi,     
     transformCommand: /([a-zXY]*)\s*\(\s*((-?\d+\.?\d*(?:e[+-]?\d+)?\s*,?\s*)*)\)/gi,
+    semiColonValues: /(-?\d+\.?\d*(?:e[+-]?\d+)?)\s*;\s*/gi,
     values: /(-?\d+\.?\d*(?:e[+-]?\d+)?)\s*,?\s*/gi,
     number: /(-?\d+\.?\d*(?:e[+-]?\d+)?)/
 };
