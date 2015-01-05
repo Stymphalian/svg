@@ -71,6 +71,9 @@ svg.module(function(lib){
 
         // an array of functions
         // call all the mixins listed in the array
+        if( asFuncs === undefined || asFuncs === null){
+            console.log("not very good thing to do here");
+        }
         for(var i = 0; i < asFuncs.length; ++i){
             asFuncs[i].call(this);
         }

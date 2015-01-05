@@ -45,6 +45,12 @@ require(["svg","testing"], function(svg,T){
         "pattern_test",
         "clipPath_test",
         "mask_test",
+
+
+        "set_test",
+        "animate_test",
+        "animateMotion_test",
+        "animateTransform_test",
                     
         "shape_test",
         "transform_test",

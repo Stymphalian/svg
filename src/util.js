@@ -167,6 +167,9 @@ util.clone = function(src){
     if( util.is(src,"array")){
         // array
         r = [];
+        if( src === undefined || src === null){
+            console.log("what is going on here");
+        }
         var n = src.length;
         for(var i =0; i < n; ++i){
             r.push(util.clone(src[i]));

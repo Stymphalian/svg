@@ -21,6 +21,11 @@ gulp.task("watch",function(){
 
 gulp.task("default",["build"],function(){
     var bundle_name = getBundleName();
+    gulp.src("./build/"+bundle_name + ".min.js")
+            .pipe(gulp.dest('./dist/js'))
+            .pipe(rename(require("./package.json").name + ".min.js"))
+            .pipe(gulp.dest('./tests/manual/js'));
+
     return gulp.src("./build/"+bundle_name + ".js")
             .pipe(gulp.dest('./dist/js'))
             .pipe(rename(require("./package.json").name + ".js"))

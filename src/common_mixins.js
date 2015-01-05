@@ -188,13 +188,11 @@ common.applyAnimationProps = function(){
                 return util.toNum(v);
             });
             return rs;
-
         }else{
             if(util.is(val,"array")){
-                var s = val.join(" ");
-                return s;
+                return val.join(" ");                
             }else{
-                return s;
+                return val;
             }
         }
     }
