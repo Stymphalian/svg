@@ -44,6 +44,7 @@ require(["svg","testing"], function(svg,T){
         "radialGradient_test",
         "pattern_test",
         "clipPath_test",
+        "mask_test",
                     
         "shape_test",
         "transform_test",

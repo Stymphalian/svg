@@ -11,6 +11,8 @@ return function(canvas,T){
     });
     r.clip_path(r.url("#clipPath_1"));
 
+    T.assertEq(r.clip_path(),"url(#clipPath_1)");
+
     var c2 = c.clone();
     c2.clear();
     c2.id("clipPath_2");
@@ -18,6 +20,7 @@ return function(canvas,T){
 
     var g = canvas.g();
     g.clip_path(g.url("#clipPath_2"));
+    T.assertEq(g.clip_path(),"url(#clipPath_2)");
     g.rect(5,105,190,90).attr({
         stroke:"none",
         fill : "#00ff00"

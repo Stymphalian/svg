@@ -15,7 +15,10 @@ svg.extend(function(svgElem,util,modules){
 
     function asClipPath(){
         var props= [
-            {desired:"id"}
+            {desired:"id"},
+
+            // userSpaceOnUse | objectBoundingBox
+            {desired:"units",real:"clipPathUnits"},
         ];
         this.attr.DirectAccess(this,props);
 
@@ -23,7 +26,13 @@ svg.extend(function(svgElem,util,modules){
     }
 
     function clip_path(id){
-        return this.attr("clip-path",id)
+        if(id === undefined){
+            return this.attr("clip-path");
+        }else{
+            this.attr("clip-path",id)
+            return this;
+        }
+        
     }
 
 });
