@@ -406,6 +406,11 @@ svg.module(function(lib){
         return globals.document.createTextNode(s);
     }
 
+    svgElem.prototype.url = function(s){
+        if( s=== undefined){return null;}
+        return "url("+s+")";
+    }
+
 });
 svg.module(function(lib){
 lib.modules["common"] = common;
@@ -962,7 +967,9 @@ return {
         if( context !== undefined && context !== null){
            context._transform_values = [];
            if( context.dom.nodeName === "linearGradient" || context.dom.nodeName === "radialGradient"){
-                context._transform_name = "gradientTransform"
+                context._transform_name = "gradientTransform";
+           }else if (context.dom.nodeName === "pattern"){
+                context._transform_name = "patternTransform";
            }else{
                 context._transform_name = "transform";
            }
@@ -2076,6 +2083,47 @@ svg.extend(function(svgElem,util,modules){
 
 });
 
+svg.extend(function(svgElem,util,modules){
+    svgElem.prototype.pattern = pattern;
+    pattern.asPattern = asPattern;
+
+    function pattern(id,x,y,width,height){
+        var e = new svgElem("pattern",this.dom);
+
+        e.attr({
+            id:id, x:x,y:y,
+            width:width,height:height,
+            patternUnits : "userSpaceOnUse"
+        });
+
+        asPattern.call(e);
+        return e;
+    }
+
+    function asPattern(){
+        var props = [
+            {desired:"id"},
+
+            // userSpaceOnUse | objectBoundingBox
+            {desired:"units",real:"patternUnits"},
+
+            // userSpaceOnUse | objectBoundingBox
+            {desired:"contentUnits",real:"patternContentUnits"},
+
+            {desired:"x",isNum:true},
+            {desired:"y",isNum:true},
+            {desired:"width",isNum:true},
+            {desired:"height",isNum:true},            
+        ];
+        this.attr.DirectAccess(this,props);
+
+        modules.common.asViewport.call(this);
+        modules.common.asXlinkable.call(this);
+
+        return this;
+    }
+
+});
 //rect.js
 svg.extend(function(svgElem,util){
     svgElem.prototype.rect = rect;

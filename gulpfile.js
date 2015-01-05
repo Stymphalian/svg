@@ -61,6 +61,7 @@ gulp.task("build",function(cb){
         "src/containers/marker.js",
         "src/containers/gradient.js",
         "src/containers/stop.js",
+        "src/containers/pattern.js",
 
         // basic shapes        
         "src/basic_shapes/rect.js",

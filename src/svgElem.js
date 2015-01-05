@@ -107,4 +107,9 @@ svg.module(function(lib){
         return globals.document.createTextNode(s);
     }
 
+    svgElem.prototype.url = function(s){
+        if( s=== undefined){return null;}
+        return "url("+s+")";
+    }
+
 });

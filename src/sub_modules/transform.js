@@ -20,7 +20,9 @@ return {
         if( context !== undefined && context !== null){
            context._transform_values = [];
            if( context.dom.nodeName === "linearGradient" || context.dom.nodeName === "radialGradient"){
-                context._transform_name = "gradientTransform"
+                context._transform_name = "gradientTransform";
+           }else if (context.dom.nodeName === "pattern"){
+                context._transform_name = "patternTransform";
            }else{
                 context._transform_name = "transform";
            }
